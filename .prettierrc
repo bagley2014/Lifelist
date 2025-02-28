@@ -1,0 +1,27 @@
+{
+  "useTabs": true,
+  "singleQuote": true,
+  "pluginSearchDirs": [
+    "."
+  ],
+  "arrowParens": "avoid",
+  "endOfLine": "lf",
+  "printWidth": 175,
+  "quoteProps": "consistent",
+  "trailingComma": "all",
+  "overrides": [
+    {
+      "files": "*.json",
+      "options": {
+        "singleQuote": false
+      }
+    },
+    {
+      "files": ".*rc",
+      "options": {
+        "singleQuote": false,
+        "parser": "json"
+      }
+    }
+  ]
+}
