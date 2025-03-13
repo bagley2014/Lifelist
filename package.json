@@ -23,5 +23,10 @@
 		"prettier": "^3.5.2",
 		"ts-node": "^10.9.2",
 		"typescript": "^5.7.3"
+	},
+	"dependencies": {
+		"chrono-node": "^2.7.8",
+		"yaml": "^2.7.0",
+		"yup": "^1.6.1"
 	}
 }
