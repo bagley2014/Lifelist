@@ -26,6 +26,7 @@
 	},
 	"dependencies": {
 		"chrono-node": "^2.7.8",
+		"fast-sort": "^3.4.1",
 		"yaml": "^2.7.0",
 		"yup": "^1.6.1"
 	}

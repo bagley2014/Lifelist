@@ -1,6 +1,13 @@
 import * as chrono from 'chrono-node';
 
-import { InferType, array, date, number, object, ref, string } from 'yup';
+import { InferType, array, date, mixed, number, object, ref, string } from 'yup';
+
+export enum Frequency {
+	Once = 'once',
+	Weekly = 'weekly',
+	Biweekly = 'biweekly',
+	Weekdays = 'weekdays',
+}
 
 // Cheat sheet for null and undefined in yup
 // By default, properties can be undefined, but they cannot be null
@@ -31,7 +38,13 @@ const eventSchema = object({
 		then: schema => schema.test('is-null-or-undefined', '${path} is defined but start is not', value => value === null || value === undefined),
 		otherwise: schema => schema.min(ref('start'), 'End date must be after start date'),
 	}),
-	frequency: string().default('once'),
+	frequency: mixed<Frequency>()
+		.oneOf(Object.values(Frequency))
+		.default(Frequency.Once)
+		.when('start', {
+			is: null,
+			then: schema => schema.test('is-once', '${path} must be "once" if start is null', value => value == 'once'),
+		}),
 	tags: array().of(string().required()).default([]),
 }).exact();
 
