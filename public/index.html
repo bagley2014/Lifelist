@@ -1,0 +1,233 @@
+<!-- public/index.html -->
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Event List</title>
+		<style>
+			body {
+				font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+				margin: 0;
+				padding: 20px;
+				line-height: 1.6;
+				color: #333;
+			}
+			.container {
+				max-width: 800px;
+				margin: 0 auto;
+			}
+			h1 {
+				margin-top: 0;
+			}
+			.filters {
+				background-color: #f5f5f5;
+				padding: 15px;
+				border-radius: 4px;
+				margin-bottom: 20px;
+			}
+			.filter-group {
+				margin-bottom: 10px;
+			}
+			label {
+				display: block;
+				margin-bottom: 5px;
+				font-weight: bold;
+			}
+			select,
+			input {
+				padding: 8px;
+				border: 1px solid #ddd;
+				border-radius: 4px;
+				width: 100%;
+				box-sizing: border-box;
+			}
+			.event-list {
+				display: grid;
+				gap: 15px;
+			}
+			.event-card {
+				border: 1px solid #ddd;
+				border-radius: 4px;
+				padding: 15px;
+				background-color: white;
+			}
+			.event-name {
+				font-size: 18px;
+				font-weight: bold;
+				margin-top: 0;
+				margin-bottom: 10px;
+			}
+			.event-details {
+				display: grid;
+				grid-template-columns: auto 1fr;
+				gap: 5px 10px;
+				font-size: 14px;
+			}
+			.event-details dt {
+				font-weight: bold;
+				color: #555;
+			}
+			.tag {
+				display: inline-block;
+				background-color: #e0f0ff;
+				color: #0066cc;
+				padding: 3px 8px;
+				border-radius: 12px;
+				font-size: 12px;
+				margin-right: 5px;
+				margin-bottom: 5px;
+			}
+			.priority {
+				font-weight: bold;
+				color: #d35400;
+			}
+			.loading {
+				text-align: center;
+				padding: 20px;
+				font-style: italic;
+				color: #777;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<h1>Event List</h1>
+
+			<div class="filters">
+				<div class="filter-group">
+					<label for="priority-filter">Priority Filter:</label>
+					<select id="priority-filter">
+						<option value="">All Priorities</option>
+						<option value="1">1 (Lowest)</option>
+						<option value="2">2</option>
+						<option value="3">3</option>
+						<option value="4">4</option>
+						<option value="5">5</option>
+						<option value="6">6</option>
+						<option value="7">7</option>
+						<option value="8">8</option>
+						<option value="9">9</option>
+						<option value="10">10 (Highest)</option>
+					</select>
+				</div>
+
+				<div class="filter-group">
+					<label for="tag-filter">Tag Filter:</label>
+					<input type="text" id="tag-filter" placeholder="Enter tag name" />
+				</div>
+			</div>
+
+			<div id="event-list" class="event-list">
+				<div class="loading">Loading events...</div>
+			</div>
+		</div>
+
+		<script>
+			// Store events globally
+			let events = [];
+
+			// Function to format the date
+			function formatDate(date) {
+				return new Date(date).toLocaleString('en-US', {
+					weekday: 'short',
+					month: 'short',
+					day: 'numeric',
+					year: 'numeric',
+					hour: '2-digit',
+					minute: '2-digit',
+				});
+			}
+
+			// Function to render events
+			function renderEvents(eventsToRender) {
+				const eventListContainer = document.getElementById('event-list');
+				eventListContainer.innerHTML = '';
+
+				if (eventsToRender.length === 0) {
+					eventListContainer.innerHTML = '<p>No events match your filters.</p>';
+					return;
+				}
+
+				eventsToRender.forEach(event => {
+					const eventCard = document.createElement('div');
+					eventCard.className = 'event-card';
+
+					const tagHtml = event.tags.map(tag => `<span class="tag">${tag}</span>`).join('');
+
+					eventCard.innerHTML = `
+          <h3 class="event-name">${event.name}</h3>
+          <div class="event-tags">${tagHtml}</div>
+          <dl class="event-details">
+            <dt>Start:</dt>
+            <dd>${formatDate(event.start)}</dd>
+            
+            <dt>Frequency:</dt>
+            <dd>${event.frequency}</dd>
+            
+            <dt>Location:</dt>
+            <dd>${event.location}</dd>
+            
+            <dt>Priority:</dt>
+            <dd class="priority">${event.priority}</dd>
+          </dl>
+        `;
+
+					eventListContainer.appendChild(eventCard);
+				});
+			}
+
+			// Function to filter events
+			function filterEvents() {
+				const priorityFilter = document.getElementById('priority-filter').value;
+				const tagFilter = document.getElementById('tag-filter').value.toLowerCase();
+
+				const filteredEvents = events.filter(event => {
+					// Filter by priority
+					if (priorityFilter && event.priority != priorityFilter) {
+						return false;
+					}
+
+					// Filter by tag
+					if (tagFilter && !event.tags.some(tag => tag.toLowerCase().includes(tagFilter))) {
+						return false;
+					}
+
+					return true;
+				});
+
+				renderEvents(filteredEvents);
+			}
+
+			// Add event listeners
+			document.getElementById('priority-filter').addEventListener('change', filterEvents);
+			document.getElementById('tag-filter').addEventListener('input', filterEvents);
+
+			// Function to load data from the API
+			async function loadData() {
+				try {
+					const response = await fetch('/api/events?count=100');
+					if (!response.ok) {
+						throw new Error('Failed to fetch events');
+					}
+
+					const data = await response.json();
+
+					// Convert date strings back to Date objects
+					events = data.map(event => ({
+						...event,
+						start: new Date(event.start),
+					}));
+
+					renderEvents(events);
+				} catch (error) {
+					console.error('Error loading events:', error);
+					document.getElementById('event-list').innerHTML = '<p style="color: red">Error loading events. Please try again later.</p>';
+				}
+			}
+
+			// Load data when page loads
+			document.addEventListener('DOMContentLoaded', loadData);
+		</script>
+	</body>
+</html>

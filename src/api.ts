@@ -16,6 +16,10 @@ async function parseEvents() {
 	return events;
 }
 
+// We load the events once at boot and cache them for the lifetime of the server
+// Would be cool to watch the events file and update this when it changes (maybe lock the cache while updating)
+const PARSED_EVENTS = parseEvents();
+
 const DAY_MILLISECONDS = 24 * 60 * 60 * 1000;
 
 function* enumerateEventsFromDate(events: Event[], date: Date = new Date()) {
@@ -54,16 +58,15 @@ function* enumerateEventsFromDate(events: Event[], date: Date = new Date()) {
 	}
 }
 
-async function main() {
-	const events = await parseEvents();
-	const generator = enumerateEventsFromDate(events.upcoming);
-	for (let i = 0; i < 20; i++) {
+export async function events(from: Date, count: number): Promise<Event[]> {
+	const results: Event[] = [];
+	const generator = enumerateEventsFromDate((await PARSED_EVENTS).upcoming, from);
+	for (let i = 0; i < count; i++) {
 		const nextEvent = generator.next();
 		if (nextEvent.done) {
 			break;
 		}
-		console.log(`${nextEvent.value.name} (${nextEvent.value.start?.toString() ?? 'TBD'})`);
+		results.push(nextEvent.value);
 	}
+	return results;
 }
-
-main();
