@@ -60,13 +60,10 @@
 			}
 			.event-details {
 				display: grid;
-				grid-template-columns: auto 1fr;
-				gap: 5px 10px;
+				grid-template-columns: auto auto auto auto auto;
+				gap: 2px;
 				font-size: 14px;
-			}
-			.event-details dt {
-				font-weight: bold;
-				color: #555;
+				margin-inline-start: 0px;
 			}
 			.tag {
 				display: inline-block;
@@ -156,20 +153,17 @@
 					const tagHtml = event.tags.map(tag => `<span class="tag">${tag}</span>`).join('');
 
 					eventCard.innerHTML = `
-          <h3 class="event-name">${event.name}</h3>
-          <div class="event-tags">${tagHtml}</div>
+          
           <dl class="event-details">
-            <dt>Start:</dt>
-            <dd>${formatDate(event.start)}</dd>
+            <span class="event-name">${event.name}</span>
+
+            <span>${formatDate(event.start)}</span>
+			
+            <span>${event.location}</span>
             
-            <dt>Frequency:</dt>
-            <dd>${event.frequency}</dd>
-            
-            <dt>Location:</dt>
-            <dd>${event.location}</dd>
-            
-            <dt>Priority:</dt>
-            <dd class="priority">${event.priority}</dd>
+            <span class="priority">${event.priority}</span>
+			
+			<span class="event-tags">${tagHtml}</span>
           </dl>
         `;
 
