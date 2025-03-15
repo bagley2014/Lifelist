@@ -20,26 +20,31 @@ export enum Frequency {
 // .nonNullable -> remove null
 // .required -> remove undefined and null
 
+chrono.strict.refiners.push({
+	refine: (_, results) => {
+		// If there is no time specified, then the time should default to midnight
+		results.forEach(result => {
+			if (!result.start.isCertain('hour')) {
+				result.start.assign('hour', 0);
+				result.start.assign('minute', 0);
+				result.start.assign('second', 0);
+			} else if (!result.start.isCertain('minute')) {
+				result.start.assign('minute', 0);
+				result.start.assign('second', 0);
+			} else if (!result.start.isCertain('second')) {
+				result.start.assign('second', 0);
+			}
+		});
+		return results;
+	},
+});
+
 const myDateSchema = date().transform((value, originalValue, context) => {
 	if (value === null || value === undefined) return value;
 
 	if (context.isType(value)) return value;
 
-	const chronoResult = chrono.strict.parse(originalValue);
-	if (chronoResult.length === 0) return value;
-
-	const today = new Date();
-	const year = (chronoResult[0].start.isCertain('year') && chronoResult[0].start.get('year')) || today.getFullYear();
-	const month = (chronoResult[0].start.isCertain('month') && chronoResult[0].start.get('month')) || today.getMonth() + 1; // Chrono uses 1-indexed months but Date uses a 0-indexed month
-	const day = (chronoResult[0].start.isCertain('day') && chronoResult[0].start.get('day')) || today.getDate();
-
-	const result = new Date(year, month - 1, day);
-
-	if (chronoResult[0].start.isCertain('hour')) result.setHours(chronoResult[0].start.get('hour')!);
-	if (chronoResult[0].start.isCertain('minute')) result.setMinutes(chronoResult[0].start.get('minute')!);
-	if (chronoResult[0].start.isCertain('second')) result.setSeconds(chronoResult[0].start.get('second')!);
-
-	return result;
+	return chrono.strict.parseDate(originalValue);
 });
 
 const eventSchema = object({
