@@ -13,6 +13,15 @@ const PARSED_EVENTS = parseEvents();
 
 // **************
 
+export interface EventSummary {
+	name: string;
+	priority: number;
+	location: string | null;
+	startTime: string | undefined;
+	endTime: string | undefined;
+	tags: string[];
+}
+
 function addDays(date: Date, days: number) {
 	const newDate = new Date(date);
 	newDate.setDate(newDate.getDate() + days);
@@ -110,6 +119,30 @@ async function enumerateEvents(from: Date, count: number): Promise<Event[]> {
 	return CACHED_RESULTS[cacheKey][0];
 }
 
-export async function events(from: Date, count: number): Promise<Event[]> {
-	return await enumerateEvents(from, count);
+function groupAndCleanEvents(events: Event[]) {
+	const groups: { [key: string]: EventSummary[] } = {};
+
+	for (const event of events) {
+		const key = event.start?.toDateString() ?? 'TODO';
+		if (!groups[key]) groups[key] = [];
+		groups[key].push({
+			name: event.name,
+			priority: event.priority,
+			location: event.location,
+			startTime: event.start?.toLocaleTimeString(),
+			endTime: event.end?.toLocaleTimeString(),
+			tags: event.tags,
+		});
+	}
+
+	const results: [string, EventSummary[]][] = Object.keys(groups).map(key => [key, groups[key]]);
+	inPlaceSort(results).asc([([key]) => new Date(key === 'TODO' ? '1970-01-01' : key)]);
+	return results;
+}
+
+export async function events(from: Date, count: number): Promise<[string, EventSummary[]][]> {
+	const events = await enumerateEvents(from, count);
+	const groups = groupAndCleanEvents(events);
+	console.log(groups);
+	return groups;
 }
