@@ -1,0 +1,73 @@
+upcoming:
+  - name: Doctor's Appointment
+    priority: 10
+    location: 1600 Pennsylvania Avenue NW
+    start: 2025-03-20 14:00:00 CT
+    frequency: once
+    tags: []
+
+  - name: HOA Board Meeting
+    priority: 8
+    location: Mailboxes
+    start: 2025-03-18 19:00:00 CT
+    frequency: once
+    tags: []
+
+  - name: Car Inspection
+    priority: 5
+    location: null
+    start: null
+    frequency: once
+    tags: []
+
+  - name: Abomination Vaults
+    priority: 9
+    location: Online
+    start: 2025-03-12 19:00:00 PT
+    frequency: weekly
+    tags:
+      - Pathfinder
+
+  - name: Ruby Phoenix
+    priority: 9
+    location: Online
+    start: 2025-03-13 20:30:00 PT
+    frequency: weekly
+    tags:
+      - Pathfinder
+
+  - name: Kingmaker
+    priority: 8
+    location: Online
+    start: 2025-03-01 18:30:00 PT
+    end: 2025-03-01 21:30:00 PT
+    frequency: biweekly
+    tags:
+      - Pathfinder
+
+  - name: Blood Lords
+    priority: 8
+    location: Online
+    start: 2025-03-08 16:00:00 PT
+    end: 2025-03-08 19:00:00 PT
+    frequency: biweekly
+    tags:
+      - Pathfinder
+
+  - name: Borderlands 4
+    priority: 5
+    start: September 23, 2025
+    tags:
+      - Video Game
+
+  - name: Overpowered Wizard 3
+    priority: 3.5
+    start: June 3, 2025
+    tags:
+      - Book
+
+  - name: Primal Hunter 12
+    priority: 4
+    start: March 26th, 2025
+    tags:
+      - Book
