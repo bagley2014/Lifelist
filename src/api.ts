@@ -5,7 +5,6 @@ import { inPlaceSort } from 'fast-sort';
 import { parse as yamlParse } from 'yaml';
 
 // GLOBALS ******
-const DAY_MILLISECONDS = 24 * 60 * 60 * 1000;
 const CACHED_RESULTS: { [key: string]: [Event[], AsyncGenerator<Event, void, unknown>] } = {};
 
 // We load the events once at boot and cache them for the lifetime of the server
@@ -13,6 +12,12 @@ const CACHED_RESULTS: { [key: string]: [Event[], AsyncGenerator<Event, void, unk
 const PARSED_EVENTS = parseEvents();
 
 // **************
+
+function addDays(date: Date, days: number) {
+	const newDate = new Date(date);
+	newDate.setDate(newDate.getDate() + days);
+	return newDate;
+}
 
 function sortEvents(events: Event[]) {
 	// Sort the events so that the earliest ones come first (null represents "immediate" TODOs and so should come first)
@@ -40,18 +45,20 @@ async function* enumerateEventsFromDate(date: Date = new Date()) {
 
 		// Add a new event to the list if this event is repeating
 		if (event.frequency !== Frequency.Once) {
+			// The schema ensures that any event with a frequency other than "once" has a start date
 			if (event.frequency === Frequency.Weekly) {
-				const nextEvent = { ...event, start: new Date(event.start!.valueOf() + 7 * DAY_MILLISECONDS) };
+				const nextEvent = { ...event, start: addDays(event.start!, 7), end: event.end ? addDays(event.end, 7) : event.end };
 				events.push(nextEvent);
 			} else if (event.frequency === Frequency.Biweekly) {
-				const nextEvent = { ...event, start: new Date(event.start!.valueOf() + 14 * DAY_MILLISECONDS) };
+				const nextEvent = { ...event, start: addDays(event.start!, 14), end: event.end ? addDays(event.end, 14) : event.end };
 				events.push(nextEvent);
 			} else if (event.frequency === Frequency.Weekdays) {
-				const nextDay = new Date(event.start!.valueOf() + DAY_MILLISECONDS);
+				let daysToAdd = 1;
+				let nextDay = addDays(event.start!, daysToAdd);
 				while (nextDay.getDay() === 0 || nextDay.getDay() === 6) {
-					nextDay.setDate(nextDay.getDate() + 1);
+					nextDay = addDays(event.start!, ++daysToAdd);
 				}
-				const nextEvent = { ...event, start: nextDay };
+				const nextEvent = { ...event, start: nextDay, end: event.end ? addDays(event.end, daysToAdd) : event.end };
 				events.push(nextEvent);
 			}
 
@@ -62,6 +69,16 @@ async function* enumerateEventsFromDate(date: Date = new Date()) {
 		// Skip events that have already occurred
 		if (event.start && event.start < date) {
 			continue;
+		}
+
+		// Add a new event for events that span multiple days
+		if (event.end && event.end.getDate() > event.start!.getDate()) {
+			// The schema ensures that any event with an end date has a start date
+			const nextEvent = { ...event, start: addDays(event.start!, 1) };
+			events.push(nextEvent);
+
+			// Sort the events after adding a new one
+			sortEvents(events);
 		}
 
 		// Return valid upcoming events
