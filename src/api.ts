@@ -4,6 +4,11 @@ import { promises as fsp } from 'fs';
 import { inPlaceSort } from 'fast-sort';
 import { parse as yamlParse } from 'yaml';
 
+function sortEvents(events: Event[]) {
+	// Sort the events so that the earliest ones come first (null represents "immediate" TODOs and so should come first)
+	inPlaceSort(events).asc(e => e.start?.valueOf() ?? -1);
+}
+
 async function parseEvents() {
 	const DATA_FILE = 'data/events.yaml';
 
@@ -11,8 +16,8 @@ async function parseEvents() {
 		encoding: 'utf8',
 	});
 
-	const events = dataSchema.cast(yamlParse(eventDataFileContent));
-
+	const events = dataSchema.cast(yamlParse(eventDataFileContent)).upcoming;
+	sortEvents(events);
 	return events;
 }
 
@@ -22,10 +27,11 @@ const PARSED_EVENTS = parseEvents();
 
 const DAY_MILLISECONDS = 24 * 60 * 60 * 1000;
 
-function* enumerateEventsFromDate(events: Event[], date: Date = new Date()) {
+async function* enumerateEventsFromDate(date: Date = new Date()) {
+	// Clone the parsed events data so we can modify it
+	const events = (await PARSED_EVENTS).slice();
+
 	while (events.length) {
-		// Sort the events so that the earliest ones come first (null represents "immediate" TODOs and so should come first)
-		inPlaceSort(events).asc(e => e.start?.valueOf() ?? -1);
 		const event = events.shift() as Event;
 
 		// Add a new event to the list if this event is repeating
@@ -44,6 +50,9 @@ function* enumerateEventsFromDate(events: Event[], date: Date = new Date()) {
 				const nextEvent = { ...event, start: nextDay };
 				events.push(nextEvent);
 			}
+
+			// Sort the events after adding a new one
+			sortEvents(events);
 		}
 
 		// Skip events that have already occurred
@@ -60,9 +69,9 @@ function* enumerateEventsFromDate(events: Event[], date: Date = new Date()) {
 
 export async function events(from: Date, count: number): Promise<Event[]> {
 	const results: Event[] = [];
-	const generator = enumerateEventsFromDate((await PARSED_EVENTS).upcoming, from);
+	const generator = enumerateEventsFromDate(from);
 	for (let i = 0; i < count; i++) {
-		const nextEvent = generator.next();
+		const nextEvent = await generator.next();
 		if (nextEvent.done) {
 			break;
 		}
