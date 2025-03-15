@@ -25,7 +25,21 @@ const myDateSchema = date().transform((value, originalValue, context) => {
 
 	if (context.isType(value)) return value;
 
-	return chrono.parseDate(originalValue);
+	const chronoResult = chrono.strict.parse(originalValue);
+	if (chronoResult.length === 0) return value;
+
+	const today = new Date();
+	const year = (chronoResult[0].start.isCertain('year') && chronoResult[0].start.get('year')) || today.getFullYear();
+	const month = (chronoResult[0].start.isCertain('month') && chronoResult[0].start.get('month')) || today.getMonth() + 1; // Chrono uses 1-indexed months but Date uses a 0-indexed month
+	const day = (chronoResult[0].start.isCertain('day') && chronoResult[0].start.get('day')) || today.getDate();
+
+	const result = new Date(year, month - 1, day);
+
+	if (chronoResult[0].start.isCertain('hour')) result.setHours(chronoResult[0].start.get('hour')!);
+	if (chronoResult[0].start.isCertain('minute')) result.setMinutes(chronoResult[0].start.get('minute')!);
+	if (chronoResult[0].start.isCertain('second')) result.setSeconds(chronoResult[0].start.get('second')!);
+
+	return result;
 });
 
 const eventSchema = object({

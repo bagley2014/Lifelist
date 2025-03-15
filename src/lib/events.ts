@@ -6,7 +6,7 @@ import { parse as yamlParse } from 'yaml';
 
 // GLOBALS ******
 const CACHED_RESULTS: { [key: string]: [Event[], AsyncGenerator<Event, void, unknown>] } = {};
-
+const TIME_FORMAT = new Intl.DateTimeFormat('en-US', { timeStyle: 'short' });
 // We load the events once at boot and cache them for the lifetime of the server
 // Would be cool to watch the events file and update this when it changes (maybe lock the cache while updating)
 const PARSED_EVENTS = parseEvents();
@@ -129,13 +129,16 @@ function groupAndCleanEvents(events: Event[]) {
 			name: event.name,
 			priority: event.priority,
 			location: event.location,
-			startTime: event.start?.toLocaleTimeString(),
-			endTime: event.end?.toLocaleTimeString(),
+			startTime: event.start && (event.start.getHours() !== 0 || event.start.getMinutes() !== 0) ? TIME_FORMAT.format(event.start!) : undefined,
+			endTime: event.end && (event.end.getHours() !== 0 || event.end.getMinutes() !== 0) ? TIME_FORMAT.format(event.end!) : undefined,
 			tags: event.tags,
 		});
 	}
 
-	const results: [string, EventSummary[]][] = Object.keys(groups).map(key => [key, groups[key]]);
+	const results: [string, EventSummary[]][] = Object.keys(groups).map(key => {
+		inPlaceSort(groups[key]).desc(e => e.priority);
+		return [key, groups[key]];
+	});
 	inPlaceSort(results).asc([([key]) => new Date(key === 'TODO' ? '1970-01-01' : key)]);
 	return results;
 }
