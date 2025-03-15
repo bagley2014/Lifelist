@@ -1,15 +1,28 @@
 import { Event, Frequency, dataSchema } from './schemas';
 
+import { debounce } from './util';
 import { promises as fsp } from 'fs';
 import { inPlaceSort } from 'fast-sort';
+import { watch } from 'node:fs';
 import { parse as yamlParse } from 'yaml';
 
 // GLOBALS ******
-const CACHED_RESULTS: { [key: string]: [Event[], AsyncGenerator<Event, void, unknown>] } = {};
+const DATA_FILE = 'data/events.yaml';
 const TIME_FORMAT = new Intl.DateTimeFormat('en-US', { timeStyle: 'short' });
-// We load the events once at boot and cache them for the lifetime of the server
-// Would be cool to watch the events file and update this when it changes (maybe lock the cache while updating)
-const PARSED_EVENTS = parseEvents();
+
+let CACHED_RESULTS: { [key: string]: [Event[], AsyncGenerator<Event, void, unknown>] } = {};
+let PARSED_EVENTS = parseEvents();
+
+const debouncedParse = debounce(() => {
+	CACHED_RESULTS = {};
+	PARSED_EVENTS = parseEvents();
+}, 500);
+
+// When the data file changes, we parse it again and clear the old cache
+watch(DATA_FILE, eventType => {
+	console.log(`Data file changed (${eventType})`);
+	if (eventType === 'change') debouncedParse();
+});
 
 // **************
 
@@ -34,14 +47,15 @@ function sortEvents(events: Event[]) {
 }
 
 async function parseEvents() {
-	const DATA_FILE = 'data/events.yaml';
-
+	console.log('Parsing events data file');
 	const eventDataFileContent = await fsp.readFile(DATA_FILE, {
 		encoding: 'utf8',
 	});
 
 	const events = dataSchema.cast(yamlParse(eventDataFileContent)).upcoming;
 	sortEvents(events);
+
+	console.log('Events parsed');
 	return events;
 }
 
