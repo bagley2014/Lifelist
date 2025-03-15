@@ -10,7 +10,7 @@ const EventCalendar = () => {
 	const [eventData, setEventData] = useState<[string, EventSummary[]][]>([]);
 
 	useEffect(() => {
-		fetch('/api/events?count=50')
+		fetch('/api/events?count=100')
 			.then(res => res.json())
 			.then(data => {
 				setEventData(data);
@@ -26,9 +26,9 @@ const EventCalendar = () => {
 	};
 
 	// Calculate font size based on priority (0-10)
-	const getFontSize = (priority: number) => {
+	const getFontSize = (priority: number, maxFontSize: number = 18) => {
 		const baseFontSize = 8;
-		const maxIncrease = 10;
+		const maxIncrease = maxFontSize - baseFontSize;
 		return baseFontSize + (priority / 10) * maxIncrease;
 	};
 
@@ -53,20 +53,30 @@ const EventCalendar = () => {
 						) : (
 							<ul className="divide-y divide-gray-100">
 								{events.map((event, index) => (
-									<li key={index} className="py-1 flex flex-wrap items-center gap-2">
+									<li key={index} className="py-0.5 flex flex-wrap items-center gap-2">
 										<span style={{ fontSize: `${getFontSize(event.priority)}px` }} className="font-medium flex-grow">
 											{event.name}
 										</span>
 
 										{(event.startTime || event.endTime) && (
-											<span className="text-gray-600 bg-blue-50 px-2 py-1 rounded text-sm">{formatTimeRange(event.startTime, event.endTime)}</span>
+											<span style={{ fontSize: `${getFontSize(event.priority, 14)}px` }} className="text-gray-600 bg-blue-50 px-2 py-1 rounded text-sm">
+												{formatTimeRange(event.startTime, event.endTime)}
+											</span>
 										)}
 
-										{event.location && <span className="text-gray-600 bg-gray-100 px-2 py-1 rounded text-sm">{event.location}</span>}
+										{event.location && (
+											<span style={{ fontSize: `${getFontSize(event.priority, 14)}px` }} className="text-gray-600 bg-gray-100 px-2 py-1 rounded text-sm">
+												{event.location}
+											</span>
+										)}
 
 										<div className="flex flex-wrap gap-1">
 											{event.tags.map((tag, tagIndex) => (
-												<span key={tagIndex} className="bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-xs">
+												<span
+													key={tagIndex}
+													style={{ fontSize: `${getFontSize(event.priority, 12)}px` }}
+													className="bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-xs"
+												>
 													{tag}
 												</span>
 											))}
