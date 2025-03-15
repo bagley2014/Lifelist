@@ -143,6 +143,5 @@ function groupAndCleanEvents(events: Event[]) {
 export async function events(from: Date, count: number): Promise<[string, EventSummary[]][]> {
 	const events = await enumerateEvents(from, count);
 	const groups = groupAndCleanEvents(events);
-	console.log(groups);
 	return groups;
 }
