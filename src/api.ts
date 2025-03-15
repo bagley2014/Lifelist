@@ -4,6 +4,16 @@ import { promises as fsp } from 'fs';
 import { inPlaceSort } from 'fast-sort';
 import { parse as yamlParse } from 'yaml';
 
+// GLOBALS ******
+const DAY_MILLISECONDS = 24 * 60 * 60 * 1000;
+const CACHED_RESULTS: { [key: string]: [Event[], AsyncGenerator<Event, void, unknown>] } = {};
+
+// We load the events once at boot and cache them for the lifetime of the server
+// Would be cool to watch the events file and update this when it changes (maybe lock the cache while updating)
+const PARSED_EVENTS = parseEvents();
+
+// **************
+
 function sortEvents(events: Event[]) {
 	// Sort the events so that the earliest ones come first (null represents "immediate" TODOs and so should come first)
 	inPlaceSort(events).asc(e => e.start?.valueOf() ?? -1);
@@ -20,12 +30,6 @@ async function parseEvents() {
 	sortEvents(events);
 	return events;
 }
-
-// We load the events once at boot and cache them for the lifetime of the server
-// Would be cool to watch the events file and update this when it changes (maybe lock the cache while updating)
-const PARSED_EVENTS = parseEvents();
-
-const DAY_MILLISECONDS = 24 * 60 * 60 * 1000;
 
 async function* enumerateEventsFromDate(date: Date = new Date()) {
 	// Clone the parsed events data so we can modify it
@@ -67,15 +71,28 @@ async function* enumerateEventsFromDate(date: Date = new Date()) {
 	}
 }
 
-export async function events(from: Date, count: number): Promise<Event[]> {
-	const results: Event[] = [];
-	const generator = enumerateEventsFromDate(from);
-	for (let i = 0; i < count; i++) {
-		const nextEvent = await generator.next();
+async function enumerateEvents(from: Date, count: number): Promise<Event[]> {
+	// The key for the cache is the date without the time
+	const cacheKey = from.toDateString();
+
+	// Initialize the cache if it didn't already exist
+	if (!CACHED_RESULTS[cacheKey]) CACHED_RESULTS[cacheKey] = [[], enumerateEventsFromDate(from)];
+
+	// If we already have enough results, return them
+	if (CACHED_RESULTS[cacheKey][0].length >= count) return CACHED_RESULTS[cacheKey][0].slice(0, count);
+
+	// Otherwise, keep generating events until we have enough
+	while (CACHED_RESULTS[cacheKey][0].length < count) {
+		const nextEvent = await CACHED_RESULTS[cacheKey][1].next();
 		if (nextEvent.done) {
 			break;
 		}
-		results.push(nextEvent.value);
+		CACHED_RESULTS[cacheKey][0].push(nextEvent.value);
 	}
-	return results;
+
+	return CACHED_RESULTS[cacheKey][0];
+}
+
+export async function events(from: Date, count: number): Promise<Event[]> {
+	return await enumerateEvents(from, count);
 }
