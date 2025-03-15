@@ -26,6 +26,5 @@ export async function GET(request: NextRequest) {
 			return new Response('Unknown error', { status: 500 });
 		}
 	}
-	console.log(date, count);
 	return Response.json(await events(date, count));
 }
