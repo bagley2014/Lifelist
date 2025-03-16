@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import { EventSummary } from '@/lib/events';
 
@@ -9,20 +9,53 @@ const EventCalendar = () => {
 	const [_isLoading, setLoading] = useState(true);
 	const [eventData, setEventData] = useState<[string, EventSummary[]][]>([]);
 
+	const START_DATE = useMemo(() => new Date(), []);
+
 	useEffect(() => {
-		fetch('/api/events?count=100')
+		fetch(`/api/events?count=100&date=${START_DATE.toDateString()}`)
 			.then(res => res.json())
 			.then(data => {
 				setEventData(data);
 				setLoading(false);
 			});
-	}, []);
+	}, [START_DATE]);
 
 	// Get all dates in range, including ones with no events
 	const getDatesInRange = () => {
-		// Function to create date range with all dates (including ones with no events)
-		// For the sample data, just show the actual dates
-		return eventData;
+		// Get a list of the relevant date objects for the strings in the data
+		const dates: Date[] = eventData.map(([dateStr, _]) => new Date(dateStr)).filter(date => !isNaN(date.getTime()));
+
+		// If there aren't enough valid dates that one could be missing, return the data as is
+		if (!dates || dates.length <= 1) {
+			return eventData;
+		}
+
+		const results: [string, EventSummary[]][] = [];
+
+		// Add invalid dates to the results
+		const invalidDateCount = eventData.length - dates.length;
+		for (let i = 0; i < invalidDateCount; i++) {
+			results.push(eventData[i]);
+		}
+
+		// Loop through all dates in range
+		let currentIndex = invalidDateCount;
+		const currentDate = new Date(START_DATE);
+		while (currentDate <= dates[dates.length - 1]) {
+			// Add the current date to the results, either with an empty array (thus not bumping the index yet) or with the relevant events
+			if (currentDate.toDateString() === eventData[currentIndex][0]) {
+				results.push(eventData[currentIndex]);
+				currentIndex++;
+			} else {
+				results.push([currentDate.toDateString(), []]);
+			}
+
+			// Increment the date
+			currentDate.setDate(currentDate.getDate() + 1);
+		}
+
+		console.log(results);
+		return results;
 	};
 
 	// Calculate font size based on priority (0-10)
