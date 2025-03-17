@@ -17,6 +17,7 @@ enum TagState {
 }
 
 const EventCalendar = () => {
+	const [fetchCount, setFetchCount] = useState(100);
 	const [_isLoading, setLoading] = useState(true);
 	const [eventData, setEventData] = useState<DateEntry[]>([]);
 	const [filteredData, setFilteredData] = useState<DateEntry[]>([]);
@@ -30,13 +31,13 @@ const EventCalendar = () => {
 
 	// Fetch event data from API
 	useEffect(() => {
-		fetch(`/api/events?count=100&date=${START_DATE.toDateString()}`)
+		fetch(`/api/events?count=${fetchCount}&date=${START_DATE.toDateString()}`)
 			.then(res => res.json())
 			.then(data => {
 				setEventData(data);
 				setLoading(false);
 			});
-	}, [START_DATE]);
+	}, [START_DATE, fetchCount]);
 
 	// Extract all unique tags from the data
 	useEffect(() => {
@@ -51,11 +52,13 @@ const EventCalendar = () => {
 		setAvailableTags(tagArray);
 
 		// Initialize tag states object
-		const initialTagStates: { [tag: string]: TagState } = {};
-		tagArray.forEach(tag => {
-			initialTagStates[tag] = TagState.NEUTRAL; // All tags neutral by default
+		setTagStates(prevTagStates => {
+			const initialTagStates: { [tag: string]: TagState } = {};
+			tagArray.forEach(tag => {
+				initialTagStates[tag] = prevTagStates[tag] || TagState.NEUTRAL;
+			});
+			return initialTagStates;
 		});
-		setTagStates(initialTagStates);
 	}, [eventData]);
 
 	// Get all dates in range, including ones with no events, and filter events to respect UI settings
@@ -246,6 +249,20 @@ const EventCalendar = () => {
 						)}
 					</div>
 				))}
+			</div>
+
+			{/* Load More Button */}
+			<div className="flex justify-center w-full my-8">
+				<button
+					onClick={() => {
+						setLoading(true);
+						setFetchCount(fetchCount + 100);
+					}}
+					className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-200"
+					disabled={_isLoading}
+				>
+					More
+				</button>
 			</div>
 		</div>
 	);
