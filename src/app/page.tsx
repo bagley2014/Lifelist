@@ -4,15 +4,17 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { EventSummary } from '@/lib/events';
 
+type DateEntry = [string, EventSummary[]];
+
 const EventCalendar = () => {
 	// Sample data based on the provided structure
 	const [_isLoading, setLoading] = useState(true);
-	const [eventData, setEventData] = useState<[string, EventSummary[]][]>([]);
+	const [eventData, setEventData] = useState<DateEntry[]>([]);
+	const [filteredData, setFilteredData] = useState<DateEntry[]>([]);
 	const [minPriority, setMinPriority] = useState(0);
 	const [maxPriority, setMaxPriority] = useState(10);
-	const [availableTags, setAvailableTags] = useState([]);
-	const [selectedTags, setSelectedTags] = useState({});
-	const [filteredData, setFilteredData] = useState([]);
+	const [availableTags, setAvailableTags] = useState<string[]>([]);
+	const [selectedTags, setSelectedTags] = useState<{ [tag: string]: boolean }>({});
 
 	const START_DATE = useMemo(() => new Date(), []);
 
@@ -27,7 +29,7 @@ const EventCalendar = () => {
 
 	// Extract all unique tags from the data
 	useEffect(() => {
-		const tags = new Set();
+		const tags = new Set<string>();
 		eventData.forEach(([_, events]) => {
 			events.forEach(event => {
 				event.tags.forEach(tag => tags.add(tag));
@@ -38,7 +40,7 @@ const EventCalendar = () => {
 		setAvailableTags(tagArray);
 
 		// Initialize selected tags object
-		const initialSelectedTags = {};
+		const initialSelectedTags: { [tag: string]: boolean } = {};
 		tagArray.forEach(tag => {
 			initialSelectedTags[tag] = true; // All tags selected by default
 		});
@@ -47,7 +49,7 @@ const EventCalendar = () => {
 
 	// Apply filters
 	const filterEventSummary = useCallback(
-		([date, events]) => {
+		([date, events]: DateEntry): DateEntry => {
 			const filteredEvents = events.filter(event => {
 				// Check if event priority is within range
 				const isPriorityInRange = event.priority >= minPriority && event.priority <= maxPriority;
@@ -74,7 +76,7 @@ const EventCalendar = () => {
 			return;
 		}
 
-		const results: [string, EventSummary[]][] = [];
+		const results: DateEntry[] = [];
 
 		// Add invalid dates to the results
 		const invalidDateCount = eventData.length - dates.length;
@@ -102,7 +104,7 @@ const EventCalendar = () => {
 	}, [START_DATE, eventData, filterEventSummary]);
 
 	// Toggle tag selection
-	const toggleTag = tag => {
+	const toggleTag = (tag: string) => {
 		setSelectedTags(prev => ({
 			...prev,
 			[tag]: !prev[tag],
