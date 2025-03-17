@@ -18,8 +18,8 @@ const EventCalendar = () => {
 	const [_isLoading, setLoading] = useState(true);
 	const [eventData, setEventData] = useState<DateEntry[]>([]);
 	const [filteredData, setFilteredData] = useState<DateEntry[]>([]);
-	const [showEmptyDates, setShowEmptyDates] = useState(true);
-	const [minPriority, setMinPriority] = useState(0);
+	const [showEmptyDates, setShowEmptyDates] = useState(false);
+	const [minPriority, setMinPriority] = useState(4);
 	const [maxPriority, setMaxPriority] = useState(10);
 	const [availableTags, setAvailableTags] = useState<string[]>([]);
 	const [tagStates, setTagStates] = useState<{ [tag: string]: TagState }>({});
@@ -53,7 +53,7 @@ const EventCalendar = () => {
 			initialTagStates[tag] = TagState.NEUTRAL; // All tags neutral by default
 		});
 		setTagStates(initialTagStates);
-	}, [TagState, eventData]);
+	}, [eventData]);
 
 	// Get all dates in range, including ones with no events
 	useEffect(() => {
@@ -116,7 +116,7 @@ const EventCalendar = () => {
 		}
 
 		setFilteredData(results);
-	}, [TagState, START_DATE, eventData, minPriority, maxPriority, tagStates]);
+	}, [START_DATE, eventData, minPriority, maxPriority, tagStates]);
 
 	// Toggle tag state
 	const cycleTagState = (tag: string) => {
@@ -136,18 +136,6 @@ const EventCalendar = () => {
 				return 'bg-red-200 border-red-400 border';
 			default: // NEUTRAL
 				return 'bg-gray-200 border-gray-300 border';
-		}
-	};
-
-	// Get tag label based on state
-	const getTagLabel = (tag: string, state: TagState) => {
-		switch (state) {
-			case TagState.REQUIRED:
-				return `+${tag}`;
-			case TagState.PROHIBITED:
-				return `-${tag}`;
-			default: // NEUTRAL
-				return tag;
 		}
 	};
 
@@ -207,18 +195,13 @@ const EventCalendar = () => {
 
 				{/* Tag Filters */}
 				<div>
-					<label className="block text-sm font-medium mb-2">Filter by Tags: (Click to cycle: Neutral → Required → Prohibited)</label>
+					<label className="block text-sm font-medium mb-2">Filter by Tags:</label>
 					<div className="flex flex-wrap gap-2">
 						{availableTags.map(tag => (
 							<button key={tag} onClick={() => cycleTagState(tag)} className={`px-3 py-1 rounded-full text-sm ${getTagStyle(tagStates[tag])}`}>
-								{getTagLabel(tag, tagStates[tag])}
+								{tag}
 							</button>
 						))}
-					</div>
-					<div className="text-xs text-gray-500 mt-1">
-						<span className="inline-block w-3 h-3 bg-gray-200 rounded-full mr-1"></span> Neutral
-						<span className="inline-block w-3 h-3 bg-green-200 rounded-full ml-3 mr-1"></span> Required
-						<span className="inline-block w-3 h-3 bg-red-200 rounded-full ml-3 mr-1"></span> Prohibited
 					</div>
 				</div>
 			</div>
