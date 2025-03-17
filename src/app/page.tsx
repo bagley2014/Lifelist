@@ -14,7 +14,6 @@ enum TagState {
 }
 
 const EventCalendar = () => {
-	// Sample data based on the provided structure
 	const [_isLoading, setLoading] = useState(true);
 	const [eventData, setEventData] = useState<DateEntry[]>([]);
 	const [filteredData, setFilteredData] = useState<DateEntry[]>([]);
@@ -26,6 +25,7 @@ const EventCalendar = () => {
 
 	const START_DATE = useMemo(() => new Date(), []);
 
+	// Fetch event data from API
 	useEffect(() => {
 		fetch(`/api/events?count=100&date=${START_DATE.toDateString()}`)
 			.then(res => res.json())
@@ -55,7 +55,7 @@ const EventCalendar = () => {
 		setTagStates(initialTagStates);
 	}, [eventData]);
 
-	// Get all dates in range, including ones with no events
+	// Get all dates in range, including ones with no events, and filter events to respect UI settings
 	useEffect(() => {
 		const requiredTags = Object.entries(tagStates)
 			.filter(([_, state]) => state === TagState.REQUIRED)
@@ -115,8 +115,8 @@ const EventCalendar = () => {
 			currentDate.setDate(currentDate.getDate() + 1);
 		}
 
-		setFilteredData(results);
-	}, [START_DATE, eventData, minPriority, maxPriority, tagStates]);
+		setFilteredData(results.filter(x => showEmptyDates || x[1].length));
+	}, [START_DATE, eventData, minPriority, maxPriority, tagStates, showEmptyDates]);
 
 	// Toggle tag state
 	const cycleTagState = (tag: string) => {
@@ -208,51 +208,49 @@ const EventCalendar = () => {
 
 			{/* Event List */}
 			<div className="space-y-2">
-				{filteredData
-					.filter(x => showEmptyDates || x[1].length)
-					.map(([date, events]) => (
-						<div key={date} className="bg-white rounded-lg shadow p-4">
-							<h2 className="text-lg font-semibold border-b border-gray-200">{date}</h2>
+				{filteredData.map(([date, events]) => (
+					<div key={date} className="bg-white rounded-lg shadow p-4">
+						<h2 className="text-lg font-semibold border-b border-gray-200">{date}</h2>
 
-							{events.length === 0 ? (
-								<p className="text-gray-500 py-2 italic">No events</p>
-							) : (
-								<ul className="divide-y divide-gray-100">
-									{events.map((event, index) => (
-										<li key={index} className="py-0.5 flex flex-wrap items-center gap-2">
-											<span style={{ fontSize: `${getFontSize(event.priority)}px` }} className="font-medium flex-grow">
-												{event.name}
+						{events.length === 0 ? (
+							<p className="text-gray-500 py-2 italic">No events</p>
+						) : (
+							<ul className="divide-y divide-gray-100">
+								{events.map((event, index) => (
+									<li key={index} className="py-0.5 flex flex-wrap items-center gap-2">
+										<span style={{ fontSize: `${getFontSize(event.priority)}px` }} className="font-medium flex-grow">
+											{event.name}
+										</span>
+
+										{(event.startTime || event.endTime) && (
+											<span style={{ fontSize: `${getFontSize(event.priority, 14)}px` }} className="text-gray-600 bg-blue-50 px-2 py-1 rounded text-sm">
+												{formatTimeRange(event.startTime, event.endTime)}
 											</span>
+										)}
 
-											{(event.startTime || event.endTime) && (
-												<span style={{ fontSize: `${getFontSize(event.priority, 14)}px` }} className="text-gray-600 bg-blue-50 px-2 py-1 rounded text-sm">
-													{formatTimeRange(event.startTime, event.endTime)}
+										{event.location && (
+											<span style={{ fontSize: `${getFontSize(event.priority, 14)}px` }} className="text-gray-600 bg-gray-100 px-2 py-1 rounded text-sm">
+												{event.location}
+											</span>
+										)}
+
+										<div className="flex flex-wrap gap-1">
+											{event.tags.map((tag, tagIndex) => (
+												<span
+													key={tagIndex}
+													style={{ fontSize: `${getFontSize(event.priority, 12)}px` }}
+													className="bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-xs"
+												>
+													{tag}
 												</span>
-											)}
-
-											{event.location && (
-												<span style={{ fontSize: `${getFontSize(event.priority, 14)}px` }} className="text-gray-600 bg-gray-100 px-2 py-1 rounded text-sm">
-													{event.location}
-												</span>
-											)}
-
-											<div className="flex flex-wrap gap-1">
-												{event.tags.map((tag, tagIndex) => (
-													<span
-														key={tagIndex}
-														style={{ fontSize: `${getFontSize(event.priority, 12)}px` }}
-														className="bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-xs"
-													>
-														{tag}
-													</span>
-												))}
-											</div>
-										</li>
-									))}
-								</ul>
-							)}
-						</div>
-					))}
+											))}
+										</div>
+									</li>
+								))}
+							</ul>
+						)}
+					</div>
+				))}
 			</div>
 		</div>
 	);
