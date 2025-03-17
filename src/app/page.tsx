@@ -1,8 +1,11 @@
 'use client';
 
+import 'react-range-slider-input/dist/style.css';
+
 import React, { useEffect, useMemo, useState } from 'react';
 
 import { EventSummary } from '@/lib/events';
+import RangeSlider from 'react-range-slider-input';
 
 type DateEntry = [string, EventSummary[]];
 
@@ -159,37 +162,29 @@ const EventCalendar = () => {
 			<div className="sticky top-0 bg-white shadow-md p-4 z-10">
 				<h1 className="text-2xl font-bold mb-4 text-center">Event Calendar</h1>
 
-				<div className="flex flex-wrap gap-2">
+				<div className="flex w-full gap-2">
 					{/* Priority Range Slider */}
-					<div className="mb-4">
+					<div className="flex-grow mb-4">
 						<label className="block text-sm font-medium mb-2">
 							Priority Range: {minPriority} - {maxPriority}
 						</label>
-						<div className="flex items-center gap-2">
-							<input
-								type="range"
-								min="0"
-								max="10"
-								step="1"
-								value={minPriority}
-								onChange={e => setMinPriority(Math.min(parseInt(e.target.value), maxPriority))}
-								className="w-full"
-							/>
-							<input
-								type="range"
-								min="0"
-								max="10"
-								step="1"
-								value={maxPriority}
-								onChange={e => setMaxPriority(Math.max(parseInt(e.target.value), minPriority))}
-								className="w-full"
-							/>
-						</div>
+						<RangeSlider
+							className="flex-shrink-0 items-center"
+							min={0}
+							max={10}
+							step={0.1}
+							defaultValue={[4, 10]}
+							value={[minPriority, maxPriority]}
+							onInput={([minValue, maxValue]) => {
+								setMinPriority(minValue);
+								setMaxPriority(maxValue);
+							}}
+						/>
 					</div>
 
 					<label className="inline-flex items-center">
 						<input type="checkbox" checked={showEmptyDates} onChange={() => setShowEmptyDates(!showEmptyDates)} className="mr-1" />
-						<span className={`text-sm py-1`}>Include empty days</span>
+						<span className={`text-sm py-1`}>Show Empty Days</span>
 					</label>
 				</div>
 
