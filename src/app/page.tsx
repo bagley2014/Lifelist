@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { EventSummary } from '@/lib/events';
 
@@ -46,8 +46,8 @@ const EventCalendar = () => {
 	}, [eventData]);
 
 	// Apply filters
-	useEffect(() => {
-		const filtered = eventData.map(([date, events]) => {
+	const filterEventSummary = useCallback(
+		([date, events]) => {
 			const filteredEvents = events.filter(event => {
 				// Check if event priority is within range
 				const isPriorityInRange = event.priority >= minPriority && event.priority <= maxPriority;
@@ -59,19 +59,19 @@ const EventCalendar = () => {
 			});
 
 			return [date, filteredEvents];
-		});
-
-		setFilteredData(filtered);
-	}, [eventData, minPriority, maxPriority, selectedTags]);
+		},
+		[minPriority, maxPriority, selectedTags],
+	);
 
 	// Get all dates in range, including ones with no events
-	const getDatesInRange = () => {
+	useEffect(() => {
 		// Get a list of the relevant date objects for the strings in the data
 		const dates: Date[] = eventData.map(([dateStr, _]) => new Date(dateStr)).filter(date => !isNaN(date.getTime()));
 
 		// If there aren't enough valid dates that one could be missing, return the data as is
 		if (!dates || dates.length <= 1) {
-			return eventData;
+			setFilteredData(eventData.map(filterEventSummary));
+			return;
 		}
 
 		const results: [string, EventSummary[]][] = [];
@@ -79,7 +79,7 @@ const EventCalendar = () => {
 		// Add invalid dates to the results
 		const invalidDateCount = eventData.length - dates.length;
 		for (let i = 0; i < invalidDateCount; i++) {
-			results.push(eventData[i]);
+			results.push(filterEventSummary(eventData[i]));
 		}
 
 		// Loop through all dates in range
@@ -88,7 +88,7 @@ const EventCalendar = () => {
 		while (currentDate <= dates[dates.length - 1]) {
 			// Add the current date to the results, either with an empty array (thus not bumping the index yet) or with the relevant events
 			if (currentDate.toDateString() === eventData[currentIndex][0]) {
-				results.push(eventData[currentIndex]);
+				results.push(filterEventSummary(eventData[currentIndex]));
 				currentIndex++;
 			} else {
 				results.push([currentDate.toDateString(), []]);
@@ -98,9 +98,8 @@ const EventCalendar = () => {
 			currentDate.setDate(currentDate.getDate() + 1);
 		}
 
-		console.log(results);
-		return results;
-	};
+		setFilteredData(results);
+	}, [START_DATE, eventData, filterEventSummary]);
 
 	// Toggle tag selection
 	const toggleTag = tag => {
@@ -173,7 +172,7 @@ const EventCalendar = () => {
 
 			{/* Event List */}
 			<div className="space-y-2">
-				{getDatesInRange().map(([date, events]) => (
+				{filteredData.map(([date, events]) => (
 					<div key={date} className="bg-white rounded-lg shadow p-4">
 						<h2 className="text-lg font-semibold border-b border-gray-200">{date}</h2>
 
