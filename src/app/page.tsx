@@ -11,6 +11,7 @@ const EventCalendar = () => {
 	const [_isLoading, setLoading] = useState(true);
 	const [eventData, setEventData] = useState<DateEntry[]>([]);
 	const [filteredData, setFilteredData] = useState<DateEntry[]>([]);
+	const [showEmptyDates, setShowEmptyDates] = useState(true);
 	const [minPriority, setMinPriority] = useState(0);
 	const [maxPriority, setMaxPriority] = useState(10);
 	const [availableTags, setAvailableTags] = useState<string[]>([]);
@@ -131,31 +132,38 @@ const EventCalendar = () => {
 			<div className="sticky top-0 bg-white shadow-md p-4 z-10">
 				<h1 className="text-2xl font-bold mb-4 text-center">Event Calendar</h1>
 
-				{/* Priority Range Slider */}
-				<div className="mb-4">
-					<label className="block text-sm font-medium mb-2">
-						Priority Range: {minPriority} - {maxPriority}
-					</label>
-					<div className="flex items-center gap-2">
-						<input
-							type="range"
-							min="0"
-							max="10"
-							step="1"
-							value={minPriority}
-							onChange={e => setMinPriority(Math.min(parseInt(e.target.value), maxPriority))}
-							className="w-full"
-						/>
-						<input
-							type="range"
-							min="0"
-							max="10"
-							step="1"
-							value={maxPriority}
-							onChange={e => setMaxPriority(Math.max(parseInt(e.target.value), minPriority))}
-							className="w-full"
-						/>
+				<div className="flex flex-wrap gap-2">
+					{/* Priority Range Slider */}
+					<div className="mb-4">
+						<label className="block text-sm font-medium mb-2">
+							Priority Range: {minPriority} - {maxPriority}
+						</label>
+						<div className="flex items-center gap-2">
+							<input
+								type="range"
+								min="0"
+								max="10"
+								step="1"
+								value={minPriority}
+								onChange={e => setMinPriority(Math.min(parseInt(e.target.value), maxPriority))}
+								className="w-full"
+							/>
+							<input
+								type="range"
+								min="0"
+								max="10"
+								step="1"
+								value={maxPriority}
+								onChange={e => setMaxPriority(Math.max(parseInt(e.target.value), minPriority))}
+								className="w-full"
+							/>
+						</div>
 					</div>
+
+					<label className="inline-flex items-center">
+						<input type="checkbox" checked={showEmptyDates} onChange={() => setShowEmptyDates(!showEmptyDates)} className="mr-1" />
+						<span className={`text-sm py-1`}>Include empty days</span>
+					</label>
 				</div>
 
 				{/* Tag Filters */}
@@ -174,49 +182,51 @@ const EventCalendar = () => {
 
 			{/* Event List */}
 			<div className="space-y-2">
-				{filteredData.map(([date, events]) => (
-					<div key={date} className="bg-white rounded-lg shadow p-4">
-						<h2 className="text-lg font-semibold border-b border-gray-200">{date}</h2>
+				{filteredData
+					.filter(x => showEmptyDates || x[1].length)
+					.map(([date, events]) => (
+						<div key={date} className="bg-white rounded-lg shadow p-4">
+							<h2 className="text-lg font-semibold border-b border-gray-200">{date}</h2>
 
-						{events.length === 0 ? (
-							<p className="text-gray-500 py-2 italic">No events</p>
-						) : (
-							<ul className="divide-y divide-gray-100">
-								{events.map((event, index) => (
-									<li key={index} className="py-0.5 flex flex-wrap items-center gap-2">
-										<span style={{ fontSize: `${getFontSize(event.priority)}px` }} className="font-medium flex-grow">
-											{event.name}
-										</span>
-
-										{(event.startTime || event.endTime) && (
-											<span style={{ fontSize: `${getFontSize(event.priority, 14)}px` }} className="text-gray-600 bg-blue-50 px-2 py-1 rounded text-sm">
-												{formatTimeRange(event.startTime, event.endTime)}
+							{events.length === 0 ? (
+								<p className="text-gray-500 py-2 italic">No events</p>
+							) : (
+								<ul className="divide-y divide-gray-100">
+									{events.map((event, index) => (
+										<li key={index} className="py-0.5 flex flex-wrap items-center gap-2">
+											<span style={{ fontSize: `${getFontSize(event.priority)}px` }} className="font-medium flex-grow">
+												{event.name}
 											</span>
-										)}
 
-										{event.location && (
-											<span style={{ fontSize: `${getFontSize(event.priority, 14)}px` }} className="text-gray-600 bg-gray-100 px-2 py-1 rounded text-sm">
-												{event.location}
-											</span>
-										)}
-
-										<div className="flex flex-wrap gap-1">
-											{event.tags.map((tag, tagIndex) => (
-												<span
-													key={tagIndex}
-													style={{ fontSize: `${getFontSize(event.priority, 12)}px` }}
-													className="bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-xs"
-												>
-													{tag}
+											{(event.startTime || event.endTime) && (
+												<span style={{ fontSize: `${getFontSize(event.priority, 14)}px` }} className="text-gray-600 bg-blue-50 px-2 py-1 rounded text-sm">
+													{formatTimeRange(event.startTime, event.endTime)}
 												</span>
-											))}
-										</div>
-									</li>
-								))}
-							</ul>
-						)}
-					</div>
-				))}
+											)}
+
+											{event.location && (
+												<span style={{ fontSize: `${getFontSize(event.priority, 14)}px` }} className="text-gray-600 bg-gray-100 px-2 py-1 rounded text-sm">
+													{event.location}
+												</span>
+											)}
+
+											<div className="flex flex-wrap gap-1">
+												{event.tags.map((tag, tagIndex) => (
+													<span
+														key={tagIndex}
+														style={{ fontSize: `${getFontSize(event.priority, 12)}px` }}
+														className="bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-xs"
+													>
+														{tag}
+													</span>
+												))}
+											</div>
+										</li>
+									))}
+								</ul>
+							)}
+						</div>
+					))}
 			</div>
 		</div>
 	);
