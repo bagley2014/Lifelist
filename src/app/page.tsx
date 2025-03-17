@@ -8,6 +8,11 @@ const EventCalendar = () => {
 	// Sample data based on the provided structure
 	const [_isLoading, setLoading] = useState(true);
 	const [eventData, setEventData] = useState<[string, EventSummary[]][]>([]);
+	const [minPriority, setMinPriority] = useState(0);
+	const [maxPriority, setMaxPriority] = useState(10);
+	const [availableTags, setAvailableTags] = useState([]);
+	const [selectedTags, setSelectedTags] = useState({});
+	const [filteredData, setFilteredData] = useState([]);
 
 	const START_DATE = useMemo(() => new Date(), []);
 
@@ -19,6 +24,45 @@ const EventCalendar = () => {
 				setLoading(false);
 			});
 	}, [START_DATE]);
+
+	// Extract all unique tags from the data
+	useEffect(() => {
+		const tags = new Set();
+		eventData.forEach(([_, events]) => {
+			events.forEach(event => {
+				event.tags.forEach(tag => tags.add(tag));
+			});
+		});
+
+		const tagArray = Array.from(tags).sort();
+		setAvailableTags(tagArray);
+
+		// Initialize selected tags object
+		const initialSelectedTags = {};
+		tagArray.forEach(tag => {
+			initialSelectedTags[tag] = true; // All tags selected by default
+		});
+		setSelectedTags(initialSelectedTags);
+	}, [eventData]);
+
+	// Apply filters
+	useEffect(() => {
+		const filtered = eventData.map(([date, events]) => {
+			const filteredEvents = events.filter(event => {
+				// Check if event priority is within range
+				const isPriorityInRange = event.priority >= minPriority && event.priority <= maxPriority;
+
+				// Check if event has at least one selected tag
+				const hasSelectedTag = event.tags.some(tag => selectedTags[tag]);
+
+				return isPriorityInRange && hasSelectedTag;
+			});
+
+			return [date, filteredEvents];
+		});
+
+		setFilteredData(filtered);
+	}, [eventData, minPriority, maxPriority, selectedTags]);
 
 	// Get all dates in range, including ones with no events
 	const getDatesInRange = () => {
@@ -58,6 +102,14 @@ const EventCalendar = () => {
 		return results;
 	};
 
+	// Toggle tag selection
+	const toggleTag = tag => {
+		setSelectedTags(prev => ({
+			...prev,
+			[tag]: !prev[tag],
+		}));
+	};
+
 	// Calculate font size based on priority (0-10)
 	const getFontSize = (priority: number, maxFontSize: number = 18) => {
 		const baseFontSize = 8;
@@ -73,9 +125,53 @@ const EventCalendar = () => {
 	};
 
 	return (
-		<div className="max-w-4xl mx-auto py-2 px-4 bg-gray-50">
-			<h1 className="text-2xl font-bold mb-6 text-center">Lifelist</h1>
+		<div className="max-w-4xl mx-auto bg-gray-50 min-h-screen">
+			{/* Sticky Header with Filters */}
+			<div className="sticky top-0 bg-white shadow-md p-4 z-10">
+				<h1 className="text-2xl font-bold mb-4 text-center">Event Calendar</h1>
 
+				{/* Priority Range Slider */}
+				<div className="mb-4">
+					<label className="block text-sm font-medium mb-2">
+						Priority Range: {minPriority} - {maxPriority}
+					</label>
+					<div className="flex items-center gap-2">
+						<input
+							type="range"
+							min="0"
+							max="10"
+							step="1"
+							value={minPriority}
+							onChange={e => setMinPriority(Math.min(parseInt(e.target.value), maxPriority))}
+							className="w-full"
+						/>
+						<input
+							type="range"
+							min="0"
+							max="10"
+							step="1"
+							value={maxPriority}
+							onChange={e => setMaxPriority(Math.max(parseInt(e.target.value), minPriority))}
+							className="w-full"
+						/>
+					</div>
+				</div>
+
+				{/* Tag Filters */}
+				<div>
+					<label className="block text-sm font-medium mb-2">Filter by Tags:</label>
+					<div className="flex flex-wrap gap-2">
+						{availableTags.map(tag => (
+							<label key={tag} className="inline-flex items-center">
+								<input type="checkbox" checked={selectedTags[tag] || false} onChange={() => toggleTag(tag)} className="mr-1" />
+								<span className={`text-sm px-2 py-1 rounded-full ${selectedTags[tag] ? 'bg-blue-200' : 'bg-gray-200'}`}>{tag}</span>
+							</label>
+						))}
+					</div>
+				</div>
+			</div>
+
+			{/* Event List */}
 			<div className="space-y-2">
 				{getDatesInRange().map(([date, events]) => (
 					<div key={date} className="bg-white rounded-lg shadow p-4">
