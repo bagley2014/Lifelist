@@ -1,10 +1,17 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import { EventSummary } from '@/lib/events';
 
 type DateEntry = [string, EventSummary[]];
+
+// Tag filter states
+enum TagState {
+	NEUTRAL,
+	REQUIRED,
+	PROHIBITED,
+}
 
 const EventCalendar = () => {
 	// Sample data based on the provided structure
@@ -15,7 +22,7 @@ const EventCalendar = () => {
 	const [minPriority, setMinPriority] = useState(0);
 	const [maxPriority, setMaxPriority] = useState(10);
 	const [availableTags, setAvailableTags] = useState<string[]>([]);
-	const [selectedTags, setSelectedTags] = useState<{ [tag: string]: boolean }>({});
+	const [tagStates, setTagStates] = useState<{ [tag: string]: TagState }>({});
 
 	const START_DATE = useMemo(() => new Date(), []);
 
@@ -40,34 +47,41 @@ const EventCalendar = () => {
 		const tagArray = Array.from(tags).sort();
 		setAvailableTags(tagArray);
 
-		// Initialize selected tags object
-		const initialSelectedTags: { [tag: string]: boolean } = {};
+		// Initialize tag states object
+		const initialTagStates: { [tag: string]: TagState } = {};
 		tagArray.forEach(tag => {
-			initialSelectedTags[tag] = true; // All tags selected by default
+			initialTagStates[tag] = TagState.NEUTRAL; // All tags neutral by default
 		});
-		setSelectedTags(initialSelectedTags);
-	}, [eventData]);
+		setTagStates(initialTagStates);
+	}, [TagState, eventData]);
 
-	// Apply filters
-	const filterEventSummary = useCallback(
-		([date, events]: DateEntry): DateEntry => {
+	// Get all dates in range, including ones with no events
+	useEffect(() => {
+		const requiredTags = Object.entries(tagStates)
+			.filter(([_, state]) => state === TagState.REQUIRED)
+			.map(([tag]) => tag);
+
+		const prohibitedTags = Object.entries(tagStates)
+			.filter(([_, state]) => state === TagState.PROHIBITED)
+			.map(([tag]) => tag);
+
+		const filterEventSummary = ([date, events]: DateEntry): DateEntry => {
 			const filteredEvents = events.filter(event => {
 				// Check if event priority is within range
 				const isPriorityInRange = event.priority >= minPriority && event.priority <= maxPriority;
 
-				// Check if event has at least one selected tag
-				const hasSelectedTag = event.tags.some(tag => selectedTags[tag]);
+				// Check if event has all required tags (if any are specified)
+				const hasAllRequiredTags = requiredTags.length === 0 || requiredTags.every(tag => event.tags.includes(tag));
 
-				return isPriorityInRange && hasSelectedTag;
+				// Check if event has no prohibited tags
+				const hasNoProhibitedTags = prohibitedTags.every(tag => !event.tags.includes(tag));
+
+				return isPriorityInRange && hasAllRequiredTags && hasNoProhibitedTags;
 			});
 
 			return [date, filteredEvents];
-		},
-		[minPriority, maxPriority, selectedTags],
-	);
+		};
 
-	// Get all dates in range, including ones with no events
-	useEffect(() => {
 		// Get a list of the relevant date objects for the strings in the data
 		const dates: Date[] = eventData.map(([dateStr, _]) => new Date(dateStr)).filter(date => !isNaN(date.getTime()));
 
@@ -102,14 +116,39 @@ const EventCalendar = () => {
 		}
 
 		setFilteredData(results);
-	}, [START_DATE, eventData, filterEventSummary]);
+	}, [TagState, START_DATE, eventData, minPriority, maxPriority, tagStates]);
 
-	// Toggle tag selection
-	const toggleTag = (tag: string) => {
-		setSelectedTags(prev => ({
-			...prev,
-			[tag]: !prev[tag],
-		}));
+	// Toggle tag state
+	const cycleTagState = (tag: string) => {
+		setTagStates(prev => {
+			const currentState = prev[tag];
+			const nextState = (currentState + 1) % 3; // Cycle through 0, 1, 2
+			return { ...prev, [tag]: nextState };
+		});
+	};
+
+	// Get tag button style based on state
+	const getTagStyle = (state: TagState) => {
+		switch (state) {
+			case TagState.REQUIRED:
+				return 'bg-green-200 border-green-400 border';
+			case TagState.PROHIBITED:
+				return 'bg-red-200 border-red-400 border';
+			default: // NEUTRAL
+				return 'bg-gray-200 border-gray-300 border';
+		}
+	};
+
+	// Get tag label based on state
+	const getTagLabel = (tag: string, state: TagState) => {
+		switch (state) {
+			case TagState.REQUIRED:
+				return `+${tag}`;
+			case TagState.PROHIBITED:
+				return `-${tag}`;
+			default: // NEUTRAL
+				return tag;
+		}
 	};
 
 	// Calculate font size based on priority (0-10)
@@ -168,14 +207,18 @@ const EventCalendar = () => {
 
 				{/* Tag Filters */}
 				<div>
-					<label className="block text-sm font-medium mb-2">Filter by Tags:</label>
+					<label className="block text-sm font-medium mb-2">Filter by Tags: (Click to cycle: Neutral → Required → Prohibited)</label>
 					<div className="flex flex-wrap gap-2">
 						{availableTags.map(tag => (
-							<label key={tag} className="inline-flex items-center">
-								<input type="checkbox" checked={selectedTags[tag] || false} onChange={() => toggleTag(tag)} className="mr-1" />
-								<span className={`text-sm px-2 py-1 rounded-full ${selectedTags[tag] ? 'bg-blue-200' : 'bg-gray-200'}`}>{tag}</span>
-							</label>
+							<button key={tag} onClick={() => cycleTagState(tag)} className={`px-3 py-1 rounded-full text-sm ${getTagStyle(tagStates[tag])}`}>
+								{getTagLabel(tag, tagStates[tag])}
+							</button>
 						))}
+					</div>
+					<div className="text-xs text-gray-500 mt-1">
+						<span className="inline-block w-3 h-3 bg-gray-200 rounded-full mr-1"></span> Neutral
+						<span className="inline-block w-3 h-3 bg-green-200 rounded-full ml-3 mr-1"></span> Required
+						<span className="inline-block w-3 h-3 bg-red-200 rounded-full ml-3 mr-1"></span> Prohibited
 					</div>
 				</div>
 			</div>
