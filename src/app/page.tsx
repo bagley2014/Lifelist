@@ -4,6 +4,7 @@ import 'react-range-slider-input/dist/style.css';
 
 import React, { useEffect, useMemo, useState } from 'react';
 
+import DarkModeToggle from './darkModeToggle';
 import { EventSummary } from '@/lib/events';
 import LoadingIndicator from './loadingIndicator';
 import RangeSlider from 'react-range-slider-input';
@@ -138,11 +139,11 @@ const EventCalendar = () => {
 	const getTagStyle = (state: TagState) => {
 		switch (state) {
 			case TagState.REQUIRED:
-				return 'bg-green-200 border-green-400 border';
+				return 'bg-green-200 dark:bg-green-900 border-green-400 dark:border-green-700 border';
 			case TagState.PROHIBITED:
-				return 'bg-red-200 border-red-400 border';
+				return 'bg-red-200 dark:bg-red-900 border-red-400 dark:border-red-700 border';
 			default: // NEUTRAL
-				return 'bg-gray-200 border-gray-300 border';
+				return 'bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 border';
 		}
 	};
 
@@ -161,15 +162,17 @@ const EventCalendar = () => {
 	};
 
 	return (
-		<div className="max-w-4xl mx-auto bg-gray-50 min-h-screen">
+		<div className="max-w-4xl mx-auto bg-gray-50 dark:bg-gray-900 min-h-screen">
 			{/* Sticky Header with Filters */}
-			<div className="sticky top-0 bg-white shadow-md p-4 z-10">
-				<h1 className="text-2xl font-bold mb-4 text-center">Event Calendar</h1>
+			<div className="sticky top-0 bg-white dark:bg-gray-800 shadow-md p-4 z-10">
+				<DarkModeToggle className="absolute right-4" />
+
+				<h1 className="text-2xl font-bold mb-4 text-center dark:text-white">Event Calendar</h1>
 
 				<div className="flex w-full gap-2">
 					{/* Priority Range Slider */}
 					<div className="flex-grow mb-4">
-						<label className="block text-sm font-medium mb-2">
+						<label className="block text-sm font-medium mb-2 dark:text-gray-300">
 							Priority Range: {minPriority} - {maxPriority}
 						</label>
 						<RangeSlider
@@ -188,16 +191,16 @@ const EventCalendar = () => {
 
 					<label className="inline-flex items-center">
 						<input type="checkbox" checked={showEmptyDates} onChange={() => setShowEmptyDates(!showEmptyDates)} className="mr-1" />
-						<span className={`text-sm py-1`}>Show Empty Days</span>
+						<span className={`text-sm py-1 dark:text-gray-300`}>Show Empty Days</span>
 					</label>
 				</div>
 
 				{/* Tag Filters */}
 				<div>
-					<label className="block text-sm font-medium mb-2">Filter by Tags:</label>
+					<label className="block text-sm font-medium mb-2 dark:text-gray-300">Filter by Tags:</label>
 					<div className="flex flex-wrap gap-2">
 						{availableTags.map(tag => (
-							<button key={tag} onClick={() => cycleTagState(tag)} className={`px-3 py-1 rounded-full text-sm ${getTagStyle(tagStates[tag])}`}>
+							<button key={tag} onClick={() => cycleTagState(tag)} className={`px-3 py-1 rounded-full text-sm dark:text-gray-300 ${getTagStyle(tagStates[tag])}`}>
 								{tag}
 							</button>
 						))}
@@ -208,13 +211,13 @@ const EventCalendar = () => {
 			{/* Event List */}
 			<div className="space-y-2">
 				{filteredData.map(([date, events]) => (
-					<div key={date} className="bg-white rounded-lg shadow p-4">
-						<h2 className="text-lg font-semibold border-b border-gray-200">{date}</h2>
+					<div key={date} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 dark:text-gray-200">
+						<h2 className="text-lg font-semibold border-b border-gray-200 dark:border-gray-700 dark:text-white">{date}</h2>
 
 						{events.length === 0 ? (
-							<p className="text-gray-500 py-2 italic">No events</p>
+							<p className="text-gray-500 dark:text-gray-400 py-2 italic">No events</p>
 						) : (
-							<ul className="divide-y divide-gray-100">
+							<ul className="divide-y divide-gray-100 dark:divide-gray-700">
 								{events.map((event, index) => (
 									<li key={index} className="py-0.5 flex flex-wrap items-center gap-2">
 										<span style={{ fontSize: `${getFontSize(event.priority)}px` }} className="font-medium flex-grow">
@@ -222,13 +225,19 @@ const EventCalendar = () => {
 										</span>
 
 										{(event.startTime || event.endTime) && (
-											<span style={{ fontSize: `${getFontSize(event.priority, 14)}px` }} className="text-gray-600 bg-blue-50 px-2 py-1 rounded text-sm">
+											<span
+												style={{ fontSize: `${getFontSize(event.priority, 14)}px` }}
+												className="text-gray-600 dark:text-gray-300 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded text-sm"
+											>
 												{formatTimeRange(event.startTime, event.endTime)}
 											</span>
 										)}
 
 										{event.location && (
-											<span style={{ fontSize: `${getFontSize(event.priority, 14)}px` }} className="text-gray-600 bg-gray-100 px-2 py-1 rounded text-sm">
+											<span
+												style={{ fontSize: `${getFontSize(event.priority, 14)}px` }}
+												className="text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-sm"
+											>
 												{event.location}
 											</span>
 										)}
@@ -238,7 +247,7 @@ const EventCalendar = () => {
 												<span
 													key={tagIndex}
 													style={{ fontSize: `${getFontSize(event.priority, 12)}px` }}
-													className="bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-xs"
+													className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded-full text-xs"
 												>
 													{tag}
 												</span>
@@ -260,7 +269,7 @@ const EventCalendar = () => {
 							setLoading(true);
 							setFetchCount(fetchCount + 100);
 						}}
-						className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-200"
+						className="px-6 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-200"
 						disabled={isLoading}
 					>
 						More
