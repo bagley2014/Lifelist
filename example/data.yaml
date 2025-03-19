@@ -13,8 +13,15 @@ upcoming:
     frequency: once
     tags: []
 
-  - name: Car Inspection
-    priority: 5
+  - name: THIS IS SAMPLE DATA
+    priority: 10
+    location: null
+    start: null
+    frequency: once
+    tags: []
+
+  - name: Improve sample data
+    priority: 2
     location: null
     start: null
     frequency: once

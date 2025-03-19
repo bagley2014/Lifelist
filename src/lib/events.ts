@@ -7,7 +7,8 @@ import { watch } from 'node:fs';
 import { parse as yamlParse } from 'yaml';
 
 // GLOBALS ******
-const DATA_FILE = 'data/events.yaml';
+const DATA_FILE = process.env.DATA_FILE ?? 'example/data.yaml';
+console.log(`Using data file: ${DATA_FILE}`);
 
 let CACHED_RESULTS: { [key: string]: [Event[], AsyncGenerator<Event, void, unknown>] } = {};
 let PARSED_EVENTS = parseEvents();
