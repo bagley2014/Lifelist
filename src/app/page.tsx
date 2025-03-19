@@ -5,6 +5,7 @@ import 'react-range-slider-input/dist/style.css';
 import React, { useEffect, useMemo, useState } from 'react';
 
 import { EventSummary } from '@/lib/events';
+import LoadingIndicator from './loadingIndicator';
 import RangeSlider from 'react-range-slider-input';
 
 type DateEntry = [string, EventSummary[]];
@@ -18,7 +19,7 @@ enum TagState {
 
 const EventCalendar = () => {
 	const [fetchCount, setFetchCount] = useState(100);
-	const [_isLoading, setLoading] = useState(true);
+	const [isLoading, setLoading] = useState(true);
 	const [eventData, setEventData] = useState<DateEntry[]>([]);
 	const [filteredData, setFilteredData] = useState<DateEntry[]>([]);
 	const [showEmptyDates, setShowEmptyDates] = useState(false);
@@ -252,17 +253,21 @@ const EventCalendar = () => {
 			</div>
 
 			{/* Load More Button */}
-			<div className="flex justify-center w-full my-8">
-				<button
-					onClick={() => {
-						setLoading(true);
-						setFetchCount(fetchCount + 100);
-					}}
-					className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-200"
-					disabled={_isLoading}
-				>
-					More
-				</button>
+			<div className="flex justify-center w-full my-4">
+				{!isLoading ? (
+					<button
+						onClick={() => {
+							setLoading(true);
+							setFetchCount(fetchCount + 100);
+						}}
+						className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-200"
+						disabled={isLoading}
+					>
+						More
+					</button>
+				) : (
+					<LoadingIndicator />
+				)}
 			</div>
 		</div>
 	);
