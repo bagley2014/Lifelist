@@ -168,7 +168,7 @@ const EventCalendar = () => {
 			<div className="sticky top-0 bg-white dark:bg-gray-800 shadow-md p-4 z-10">
 				<DarkModeToggle className="absolute right-4" />
 
-				<h1 className="text-2xl font-bold mb-4 text-center dark:text-white">Event Calendar</h1>
+				<h1 className="text-2xl font-bold mb-4 text-center dark:text-white">Lifelist</h1>
 
 				<div className="flex w-full gap-2">
 					{/* Priority Range Slider */}
