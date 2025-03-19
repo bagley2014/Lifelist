@@ -1,45 +1,30 @@
 import { Moon, Sun } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+import { useTheme } from 'next-themes';
+
 interface DarkModeToggleProps {
 	className: string;
 }
 
 const DarkModeToggle = ({ className }: DarkModeToggleProps) => {
-	const [darkMode, setDarkMode] = useState(false);
+	const [mounted, setMounted] = useState(false);
+	const { theme, setTheme } = useTheme();
 
-	// Check if user had a preference set previously
+	// This useEffect only runs on the client, preventing a potential hydration mismatch if the client theme and server theme don't match
 	useEffect(() => {
-		if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-			setDarkMode(true);
-			document.documentElement.classList.add('dark');
-		} else {
-			setDarkMode(false);
-			document.documentElement.classList.remove('dark');
-		}
+		setMounted(true);
 	}, []);
 
-	const toggleDarkMode = () => {
-		if (darkMode) {
-			// Switch to light mode
-			document.documentElement.classList.remove('dark');
-			localStorage.theme = 'light';
-			setDarkMode(false);
-		} else {
-			// Switch to dark mode
-			document.documentElement.classList.add('dark');
-			localStorage.theme = 'dark';
-			setDarkMode(true);
-		}
-	};
+	const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
 
-	return (
+	return !mounted ? null : (
 		<button
-			onClick={toggleDarkMode}
+			onClick={toggleTheme}
 			className={className + ' p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'}
-			aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+			aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
 		>
-			{darkMode ? <Sun size={20} /> : <Moon size={20} />}
+			{theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
 		</button>
 	);
 };
