@@ -134,6 +134,8 @@ async function enumerateEvents(from: Date, count: number): Promise<Event[]> {
 }
 
 function groupAndCleanEvents(events: Event[], timezone: string) {
+	// The client prints the times as is, so formatting is left to the server
+	// But the client expects dates in a form like "Wed Mar 19 2025" since that's what `toDateString` outputs
 	const TIME_FORMAT = new Intl.DateTimeFormat('en-US', {
 		hour: 'numeric',
 		minute: 'numeric',
@@ -141,11 +143,18 @@ function groupAndCleanEvents(events: Event[], timezone: string) {
 		timeZone: timezone,
 		timeZoneName: 'shortGeneric',
 	});
+	const DATE_FORMAT = new Intl.DateTimeFormat('en-US', {
+		timeZone: timezone,
+		weekday: 'short',
+		year: 'numeric',
+		month: 'short',
+		day: 'numeric',
+	});
 
 	const groups: { [key: string]: EventSummary[] } = {};
 
 	for (const event of events) {
-		const key = event.start?.toDateString() ?? 'TODO';
+		const key = event.start ? DATE_FORMAT.format(event.start).replace(/,/g, '') : 'TODO';
 		if (!groups[key]) groups[key] = [];
 		groups[key].push({
 			name: event.name,
