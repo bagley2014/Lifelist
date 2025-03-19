@@ -33,7 +33,8 @@ const EventCalendar = () => {
 
 	// Fetch event data from API
 	useEffect(() => {
-		fetch(`/api/events?count=${fetchCount}&date=${START_DATE.toDateString()}`)
+		const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+		fetch(`/api/events?count=${fetchCount}&date=${START_DATE.toDateString()}&timezone=${timezone}`)
 			.then(res => res.json())
 			.then(data => {
 				setEventData(data);

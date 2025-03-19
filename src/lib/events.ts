@@ -8,7 +8,6 @@ import { parse as yamlParse } from 'yaml';
 
 // GLOBALS ******
 const DATA_FILE = 'data/events.yaml';
-const TIME_FORMAT = new Intl.DateTimeFormat('en-US', { timeStyle: 'short' });
 
 let CACHED_RESULTS: { [key: string]: [Event[], AsyncGenerator<Event, void, unknown>] } = {};
 let PARSED_EVENTS = parseEvents();
@@ -133,7 +132,15 @@ async function enumerateEvents(from: Date, count: number): Promise<Event[]> {
 	return CACHED_RESULTS[cacheKey][0];
 }
 
-function groupAndCleanEvents(events: Event[]) {
+function groupAndCleanEvents(events: Event[], timezone: string) {
+	const TIME_FORMAT = new Intl.DateTimeFormat('en-US', {
+		hour: 'numeric',
+		minute: 'numeric',
+		hour12: true,
+		timeZone: timezone,
+		timeZoneName: 'shortGeneric',
+	});
+
 	const groups: { [key: string]: EventSummary[] } = {};
 
 	for (const event of events) {
@@ -157,8 +164,8 @@ function groupAndCleanEvents(events: Event[]) {
 	return results;
 }
 
-export async function events(from: Date, count: number): Promise<[string, EventSummary[]][]> {
+export async function events(from: Date, count: number, timezone: string): Promise<[string, EventSummary[]][]> {
 	const events = await enumerateEvents(from, count);
-	const groups = groupAndCleanEvents(events);
+	const groups = groupAndCleanEvents(events, timezone);
 	return groups;
 }
