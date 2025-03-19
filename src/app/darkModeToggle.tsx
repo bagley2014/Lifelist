@@ -1,4 +1,4 @@
-import { Moon, Sun } from 'lucide-react';
+import { IoMoonOutline, IoSunnyOutline } from 'react-icons/io5';
 import { useEffect, useState } from 'react';
 
 import { useTheme } from 'next-themes';
@@ -21,10 +21,10 @@ const DarkModeToggle = ({ className }: DarkModeToggleProps) => {
 	return !mounted ? null : (
 		<button
 			onClick={toggleTheme}
-			className={className + ' p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'}
+			className={className + ' p-1 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'}
 			aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
 		>
-			{theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+			{theme === 'dark' ? <IoSunnyOutline size={20} /> : <IoMoonOutline size={20} />}
 		</button>
 	);
 };
