@@ -53,11 +53,11 @@ const EventCalendar = () => {
 
 		// Initialize tag states object
 		setTagStates(prevTagStates => {
-			const initialTagStates: { [tag: string]: TagState } = {};
+			const tagStates: { [tag: string]: TagState } = {};
 			tagArray.forEach(tag => {
-				initialTagStates[tag] = prevTagStates[tag] || TagState.NEUTRAL;
+				tagStates[tag] = prevTagStates[tag] || TagState.NEUTRAL;
 			});
-			return initialTagStates;
+			return tagStates;
 		});
 	}, [eventData]);
 
