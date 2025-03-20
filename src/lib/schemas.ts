@@ -9,17 +9,6 @@ export enum Frequency {
 	Weekdays = 'weekdays',
 }
 
-// Cheat sheet for null and undefined in yup
-// By default, properties can be undefined, but they cannot be null
-
-// .optional -> add undefined
-// .nullable -> add null
-// .notRequired -> add undefined and null
-
-// .defined -> remove undefined
-// .nonNullable -> remove null
-// .required -> remove undefined and null
-
 chrono.strict.refiners.push({
 	refine: (_, results) => {
 		// If there is no time specified, then the time should default to midnight
@@ -38,6 +27,17 @@ chrono.strict.refiners.push({
 		return results;
 	},
 });
+
+// Cheat sheet for null and undefined in yup
+// By default, properties can be undefined, but they cannot be null
+
+// .optional -> add undefined
+// .nullable -> add null
+// .notRequired -> add undefined and null
+
+// .defined -> remove undefined
+// .nonNullable -> remove null
+// .required -> remove undefined and null
 
 const myDateSchema = date().transform((value, originalValue, context) => {
 	if (value === null || value === undefined) return value;

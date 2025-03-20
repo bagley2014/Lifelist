@@ -11,6 +11,8 @@ const DATA_FILE = process.env.DATA_FILE ?? 'example/data.yaml';
 console.log(`Using data file: ${DATA_FILE}`);
 
 let CACHED_RESULTS: { [key: string]: [Event[], AsyncGenerator<Event, void, unknown>] } = {};
+
+// TODO: Make this first call lazy
 let PARSED_EVENTS = parseEvents();
 
 const debouncedParse = debounce(() => {

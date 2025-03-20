@@ -32,5 +32,6 @@ export async function GET(request: NextRequest) {
 			return new Response('Unknown error', { status: 500 });
 		}
 	}
+	// TODO: Add a timeout to keep the client from waiting forever
 	return Response.json(await events(date, count, timezone));
 }
