@@ -48,8 +48,8 @@ export const dateTimeSchema = mixed<DateTime>((input): input is DateTime => inpu
 		// Otherwise, we need to parse the value
 		const parseResults = chrono.strict.parse(originalValue);
 
-		// If the value is not a valid date, then we return null
-		if (parseResults.length === 0) return null;
+		// If the value is not a valid date, then we return an invalid DateTime object
+		if (parseResults.length === 0) return DateTime.invalid('Invalid date');
 
 		// If the value is a valid date, then we return a new DateTime object
 		const year = parseResults[0].start.isCertain('year') ? parseResults[0].start.get('year')! : undefined;
@@ -70,7 +70,7 @@ export const dateTimeSchema = mixed<DateTime>((input): input is DateTime => inpu
 			ianaTimezone ? { zone: IANAZone.create(ianaTimezone) } : timezoneOffset ? { zone: FixedOffsetZone.instance(timezoneOffset) } : {},
 		);
 	})
-	.test('is-valid', '${path} is not a valid date', value => value?.isValid);
+	.test('is-valid', '${path} is not a valid date', value => value === null || value === undefined || value.isValid);
 
 export const eventSchema = object({
 	name: string().required(),
@@ -98,6 +98,6 @@ export const eventSchema = object({
 		return true;
 	});
 
-export const dataSchema = object({ upcoming: array().of(eventSchema).required() }).exact();
+export const dataSchema = object({ upcoming: array().of(eventSchema).required() });
 
 export type Event = InferType<typeof eventSchema>;

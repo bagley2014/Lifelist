@@ -99,6 +99,16 @@ describe('eventSchema', () => {
 				end: dateTimeSchema.validateSync(validEvent.end),
 			});
 		});
+
+		test('on an event with no end time', () => {
+			const result = eventSchema.validateSync({ ...validEvent, end: undefined });
+			expect(result).toEqual({
+				...validEvent,
+				frequency: Frequency.Once,
+				start: dateTimeSchema.validateSync(validEvent.start),
+				end: undefined,
+			});
+		});
 	});
 
 	describe('to fail', () => {
