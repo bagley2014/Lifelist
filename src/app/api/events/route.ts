@@ -1,30 +1,29 @@
 import { type NextRequest } from 'next/server';
-import { number, date, ValidationError, string } from 'yup';
+import { number, ValidationError, string } from 'yup';
 import { events } from '@/lib/events';
+import { dateTimeSchema } from '@/lib/schemas';
+import { DateTime } from 'luxon';
 
 const countSchema = number().required('`count` query parameter is required').min(0, '`count` must not be negative');
-const dateSchema = date()
-	.default(new Date())
-	.transform((_, x: string): Date => {
-		const date = new Date(x);
-		return !x || isNaN(date.getTime()) ? new Date() : date;
-	});
 const timezoneSchema = string()
 	.required('`timezone` query parameter is required')
 	.matches(/^[a-zA-Z0-9\/_+-]+$/, '`timezone` must be a valid timezone');
 
 export async function GET(request: NextRequest) {
-	let date,
-		count = 0;
+	let count;
 	let timezone = '';
+	let date;
 	const searchParams = request.nextUrl.searchParams;
 	try {
-		count = countSchema.cast(searchParams.get('count'));
-		countSchema.validateSync(count);
-		date = dateSchema.cast(searchParams.get('date'));
-		dateSchema.validateSync(date);
-		timezone = timezoneSchema.cast(searchParams.get('timezone'));
-		timezoneSchema.validateSync(timezone);
+		count = countSchema.validateSync(searchParams.get('count'));
+		timezone = timezoneSchema.validateSync(searchParams.get('timezone'));
+		date = dateTimeSchema
+			.transform((value, _originalValue, context) => {
+				if (value && context.isType(value)) return value;
+				return DateTime.now().setZone(timezone);
+			})
+			.defined()
+			.validateSync(searchParams.get('date'));
 	} catch (error) {
 		if (error instanceof ValidationError || error instanceof TypeError) return new Response(error.message, { status: 400 });
 		else {
@@ -32,6 +31,7 @@ export async function GET(request: NextRequest) {
 			return new Response('Unknown error', { status: 500 });
 		}
 	}
+
 	// TODO: Add a timeout to keep the client from waiting forever
-	return Response.json(await events(date, count, timezone));
+	return Response.json(await events(date, count));
 }

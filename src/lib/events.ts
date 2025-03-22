@@ -1,32 +1,15 @@
 import { Event, Frequency, dataSchema } from './schemas';
 
+import { DateTime } from 'luxon';
 import { debounce } from './util';
-import { promises as fsp } from 'fs';
+import { promises as fsp, watch, type FSWatcher } from 'fs';
 import { inPlaceSort } from 'fast-sort';
-import { watch } from 'node:fs';
 import { parse as yamlParse } from 'yaml';
 
-// GLOBALS ******
-const DATA_FILE = process.env.DATA_FILE ?? 'example/data.yaml';
-console.log(`Using data file: ${DATA_FILE}`);
-
+let INITIALIZED = false;
 let CACHED_RESULTS: { [key: string]: [Event[], AsyncGenerator<Event, void, unknown>] } = {};
-
-// TODO: Make this first call lazy
-let PARSED_EVENTS = parseEvents();
-
-const debouncedParse = debounce(() => {
-	CACHED_RESULTS = {};
-	PARSED_EVENTS = parseEvents();
-}, 500);
-
-// When the data file changes, we parse it again and clear the old cache
-watch(DATA_FILE, eventType => {
-	console.log(`Data file changed (${eventType})`);
-	if (eventType === 'change') debouncedParse();
-});
-
-// **************
+let PARSED_EVENTS: Promise<Event[]>;
+let WATCHER: FSWatcher;
 
 export interface EventSummary {
 	name: string;
@@ -37,10 +20,55 @@ export interface EventSummary {
 	tags: string[];
 }
 
-function addDays(date: Date, days: number) {
-	const newDate = new Date(date);
-	newDate.setDate(newDate.getDate() + days);
-	return newDate;
+function init() {
+	const DATA_FILE = process.env.DATA_FILE ?? 'example/data.yaml';
+
+	if (INITIALIZED) throw new Error('Already initialized - `init` should only be called once');
+
+	console.log(`Using data file: ${DATA_FILE}`);
+
+	// TODO: Make this first call lazy
+	PARSED_EVENTS = parseEvents();
+
+	const debouncedParse = debounce(() => {
+		CACHED_RESULTS = {};
+		PARSED_EVENTS = parseEvents();
+	}, 500);
+
+	// When the data file changes, we parse it again and clear the old cache
+	WATCHER = watch(DATA_FILE, eventType => {
+		console.log(`Data file changed (${eventType})`);
+		if (eventType === 'change') debouncedParse();
+	});
+
+	INITIALIZED = true;
+
+	async function parseEvents() {
+		console.log('Parsing events data file');
+		const eventDataFileContent = await fsp.readFile(DATA_FILE, {
+			encoding: 'utf8',
+		});
+
+		const events = dataSchema.validateSync(yamlParse(eventDataFileContent)).upcoming;
+		sortEvents(events);
+
+		console.log('Events parsed');
+		return events;
+	}
+}
+
+export function reset() {
+	if (process.env.NODE_ENV !== 'test') throw new Error('reset should only be called in test environment');
+
+	if (!INITIALIZED) return;
+
+	INITIALIZED = false;
+	CACHED_RESULTS = {};
+	PARSED_EVENTS = Promise.resolve([]);
+	WATCHER.close();
+
+	// console.log was spied on in the test file
+	console.log('Reset');
 }
 
 function sortEvents(events: Event[]) {
@@ -48,20 +76,7 @@ function sortEvents(events: Event[]) {
 	inPlaceSort(events).asc(e => e.start?.valueOf() ?? -1);
 }
 
-async function parseEvents() {
-	console.log('Parsing events data file');
-	const eventDataFileContent = await fsp.readFile(DATA_FILE, {
-		encoding: 'utf8',
-	});
-
-	const events = dataSchema.cast(yamlParse(eventDataFileContent)).upcoming;
-	sortEvents(events);
-
-	console.log('Events parsed');
-	return events;
-}
-
-async function* enumerateEventsFromDate(date: Date = new Date()) {
+async function* enumerateEventsFromDate(date: DateTime) {
 	// Clone the parsed events data so we can modify it
 	const events = (await PARSED_EVENTS).slice();
 
@@ -72,18 +87,18 @@ async function* enumerateEventsFromDate(date: Date = new Date()) {
 		if (event.frequency !== Frequency.Once) {
 			// The schema ensures that any event with a frequency other than "once" has a start date
 			if (event.frequency === Frequency.Weekly) {
-				const nextEvent = { ...event, start: addDays(event.start!, 7), end: event.end ? addDays(event.end, 7) : event.end };
+				const nextEvent = { ...event, start: event.start!.plus({ weeks: 1 }), end: event.end ? event.end.plus({ weeks: 1 }) : event.end };
 				events.push(nextEvent);
 			} else if (event.frequency === Frequency.Biweekly) {
-				const nextEvent = { ...event, start: addDays(event.start!, 14), end: event.end ? addDays(event.end, 14) : event.end };
+				const nextEvent = { ...event, start: event.start!.plus({ weeks: 2 }), end: event.end ? event.end.plus({ weeks: 2 }) : event.end };
 				events.push(nextEvent);
 			} else if (event.frequency === Frequency.Weekdays) {
 				let daysToAdd = 1;
-				let nextDay = addDays(event.start!, daysToAdd);
-				while (nextDay.getDay() === 0 || nextDay.getDay() === 6) {
-					nextDay = addDays(event.start!, ++daysToAdd);
+				let nextDay = event.start!.plus({ days: daysToAdd });
+				while (nextDay.isWeekend) {
+					nextDay = event.start!.plus({ days: ++daysToAdd });
 				}
-				const nextEvent = { ...event, start: nextDay, end: event.end ? addDays(event.end, daysToAdd) : event.end };
+				const nextEvent = { ...event, start: nextDay, end: event.end ? event.end.plus({ days: daysToAdd }) : event.end };
 				events.push(nextEvent);
 			}
 
@@ -97,9 +112,9 @@ async function* enumerateEventsFromDate(date: Date = new Date()) {
 		}
 
 		// Add a new event for events that span multiple days
-		if (event.end && event.end.getDate() > event.start!.getDate()) {
+		if (event.end && event.end.day > event.start!.day) {
 			// The schema ensures that any event with an end date has a start date
-			const nextEvent = { ...event, start: addDays(event.start!, 1) };
+			const nextEvent = { ...event, start: event.start!.plus({ days: 1 }) };
 			events.push(nextEvent);
 
 			// Sort the events after adding a new one
@@ -113,9 +128,14 @@ async function* enumerateEventsFromDate(date: Date = new Date()) {
 	}
 }
 
-async function enumerateEvents(from: Date, count: number): Promise<Event[]> {
+function toDateString(date: DateTime) {
+	// The client expects dates in a form like "Wed Mar 19 2025" since that's what `Date.toDateString` outputs
+	return date.toFormat('ccc LLL dd yyyy');
+}
+
+async function enumerateEvents(from: DateTime, count: number): Promise<Event[]> {
 	// The key for the cache is the date without the time
-	const cacheKey = from.toDateString();
+	const cacheKey = toDateString(from);
 
 	// Initialize the cache if it didn't already exist
 	if (!CACHED_RESULTS[cacheKey]) CACHED_RESULTS[cacheKey] = [[], enumerateEventsFromDate(from)];
@@ -135,35 +155,27 @@ async function enumerateEvents(from: Date, count: number): Promise<Event[]> {
 	return CACHED_RESULTS[cacheKey][0];
 }
 
-function groupAndCleanEvents(events: Event[], timezone: string) {
+function groupAndCleanEvents(events: Event[]) {
 	// The client prints the times as is, so formatting is left to the server
-	// But the client expects dates in a form like "Wed Mar 19 2025" since that's what `toDateString` outputs
-	const TIME_FORMAT = new Intl.DateTimeFormat('en-US', {
-		hour: 'numeric',
-		minute: 'numeric',
-		hour12: true,
-		timeZone: timezone,
-		timeZoneName: 'shortGeneric',
-	});
-	const DATE_FORMAT = new Intl.DateTimeFormat('en-US', {
-		timeZone: timezone,
-		weekday: 'short',
-		year: 'numeric',
-		month: 'short',
-		day: 'numeric',
-	});
+	const getTime = (date: DateTime) =>
+		date.toLocaleString({
+			hour: 'numeric',
+			minute: 'numeric',
+			hour12: true,
+			timeZoneName: 'shortGeneric',
+		});
 
 	const groups: { [key: string]: EventSummary[] } = {};
 
 	for (const event of events) {
-		const key = event.start ? DATE_FORMAT.format(event.start).replace(/,/g, '') : 'TODO';
+		const key = event.start ? toDateString(event.start) : 'TODO';
 		if (!groups[key]) groups[key] = [];
 		groups[key].push({
 			name: event.name,
 			priority: event.priority,
 			location: event.location,
-			startTime: event.start && (event.start.getHours() !== 0 || event.start.getMinutes() !== 0) ? TIME_FORMAT.format(event.start!) : undefined,
-			endTime: event.end && (event.end.getHours() !== 0 || event.end.getMinutes() !== 0) ? TIME_FORMAT.format(event.end!) : undefined,
+			startTime: event.start && (event.start.hour !== 0 || event.start.minute !== 0) ? getTime(event.start!) : undefined,
+			endTime: event.end && (event.end.hour !== 0 || event.end.minute !== 0) ? getTime(event.end!) : undefined,
 			tags: event.tags,
 		});
 	}
@@ -176,8 +188,11 @@ function groupAndCleanEvents(events: Event[], timezone: string) {
 	return results;
 }
 
-export async function events(from: Date, count: number, timezone: string): Promise<[string, EventSummary[]][]> {
+export async function events(from: DateTime, count: number): Promise<[string, EventSummary[]][]> {
+	if (!INITIALIZED) init();
+	else console.log('Already initialized');
+
 	const events = await enumerateEvents(from, count);
-	const groups = groupAndCleanEvents(events, timezone);
+	const groups = groupAndCleanEvents(events);
 	return groups;
 }
