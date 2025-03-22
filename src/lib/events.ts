@@ -2,15 +2,14 @@ import { Event, Frequency, dataSchema } from './schemas';
 
 import { DateTime } from 'luxon';
 import { debounce } from './util';
-import { promises as fsp } from 'fs';
+import { promises as fsp, watch, type FSWatcher } from 'fs';
 import { inPlaceSort } from 'fast-sort';
-import { watch } from 'node:fs';
 import { parse as yamlParse } from 'yaml';
 
-const DATA_FILE = process.env.DATA_FILE ?? 'example/data.yaml';
 let INITIALIZED = false;
 let CACHED_RESULTS: { [key: string]: [Event[], AsyncGenerator<Event, void, unknown>] } = {};
 let PARSED_EVENTS: Promise<Event[]>;
+let WATCHER: FSWatcher;
 
 export interface EventSummary {
 	name: string;
@@ -22,6 +21,8 @@ export interface EventSummary {
 }
 
 function init() {
+	const DATA_FILE = process.env.DATA_FILE ?? 'example/data.yaml';
+
 	if (INITIALIZED) throw new Error('Already initialized - `init` should only be called once');
 
 	console.log(`Using data file: ${DATA_FILE}`);
@@ -35,30 +36,44 @@ function init() {
 	}, 500);
 
 	// When the data file changes, we parse it again and clear the old cache
-	watch(DATA_FILE, eventType => {
+	WATCHER = watch(DATA_FILE, eventType => {
 		console.log(`Data file changed (${eventType})`);
 		if (eventType === 'change') debouncedParse();
 	});
 
 	INITIALIZED = true;
+
+	async function parseEvents() {
+		console.log('Parsing events data file');
+		const eventDataFileContent = await fsp.readFile(DATA_FILE, {
+			encoding: 'utf8',
+		});
+
+		const events = dataSchema.validateSync(yamlParse(eventDataFileContent)).upcoming;
+		sortEvents(events);
+
+		console.log('Events parsed');
+		return events;
+	}
+}
+
+export function reset() {
+	if (process.env.NODE_ENV !== 'test') throw new Error('reset should only be called in test environment');
+
+	if (!INITIALIZED) return;
+
+	INITIALIZED = false;
+	CACHED_RESULTS = {};
+	PARSED_EVENTS = Promise.resolve([]);
+	WATCHER.close();
+
+	// console.log was spied on in the test file
+	console.log('Reset');
 }
 
 function sortEvents(events: Event[]) {
 	// Sort the events so that the earliest ones come first (null represents "immediate" TODOs and so should come first)
 	inPlaceSort(events).asc(e => e.start?.valueOf() ?? -1);
-}
-
-async function parseEvents() {
-	console.log('Parsing events data file');
-	const eventDataFileContent = await fsp.readFile(DATA_FILE, {
-		encoding: 'utf8',
-	});
-
-	const events = dataSchema.validateSync(yamlParse(eventDataFileContent)).upcoming;
-	sortEvents(events);
-
-	console.log('Events parsed');
-	return events;
 }
 
 async function* enumerateEventsFromDate(date: DateTime) {
@@ -97,7 +112,7 @@ async function* enumerateEventsFromDate(date: DateTime) {
 		}
 
 		// Add a new event for events that span multiple days
-		if (event.end && event.end > event.start!) {
+		if (event.end && event.end.day > event.start!.day) {
 			// The schema ensures that any event with an end date has a start date
 			const nextEvent = { ...event, start: event.start!.plus({ days: 1 }) };
 			events.push(nextEvent);
@@ -175,6 +190,7 @@ function groupAndCleanEvents(events: Event[]) {
 
 export async function events(from: DateTime, count: number): Promise<[string, EventSummary[]][]> {
 	if (!INITIALIZED) init();
+	else console.log('Already initialized');
 
 	const events = await enumerateEvents(from, count);
 	const groups = groupAndCleanEvents(events);
