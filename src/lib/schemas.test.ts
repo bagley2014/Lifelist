@@ -1,5 +1,5 @@
 import { Frequency, dateTimeSchema, eventSchema } from './schemas';
-import { describe, expect, test } from '@jest/globals';
+import { describe, expect, test } from 'vitest';
 
 import { DateTime } from 'luxon';
 
@@ -89,7 +89,7 @@ describe('eventSchema', () => {
 		tags: ['Test Tag'],
 	};
 
-	describe('to pass', () => {
+	describe('passes', () => {
 		test('on a valid event', () => {
 			const result = eventSchema.validateSync(validEvent);
 			expect(result).toEqual({
@@ -111,7 +111,7 @@ describe('eventSchema', () => {
 		});
 	});
 
-	describe('to fail', () => {
+	describe('fails', () => {
 		test('on an event with missing required fields', () => {
 			expect(() => {
 				eventSchema.validateSync({});
