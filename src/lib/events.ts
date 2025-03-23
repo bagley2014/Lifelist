@@ -63,7 +63,7 @@ export class EventsManager {
 		});
 	}
 
-	async events(from: DateTime, count: number): Promise<[string, EventSummary[]][]> {
+	async getEvents(from: DateTime, count: number): Promise<[string, EventSummary[]][]> {
 		const events = await this.enumerateEvents(from, count);
 		const groups = this.groupAndCleanEvents(events);
 		return groups;

@@ -34,5 +34,5 @@ export async function GET(request: NextRequest) {
 	}
 
 	// TODO: Add a timeout to keep the client from waiting forever
-	return Response.json(await manager.events(date, count));
+	return Response.json(await manager.getEvents(date, count));
 }

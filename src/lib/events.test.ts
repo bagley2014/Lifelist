@@ -53,11 +53,11 @@ const biweeklyEventWithEndTimeYaml = `
       - Pathfinder
 `;
 
-describe('events', () => {
+describe('getEvents', () => {
 	test('fails if the data file is not found', async () => {
 		vi.stubEnv('DATA_FILE', 'data.yaml');
 		const manager = new EventsManager();
-		await expect(manager.events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 1)).rejects.toThrow('Data file not found: data.yaml');
+		await expect(manager.getEvents(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 1)).rejects.toThrow('Data file not found: data.yaml');
 	});
 
 	test('loads the example data when environment variable is unset', async () => {
@@ -67,7 +67,7 @@ describe('events', () => {
 		});
 
 		const manager = new EventsManager();
-		const result = await manager.events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 1);
+		const result = await manager.getEvents(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 1);
 
 		expect(result).toBeInstanceOf(Array);
 		expect(result.length).toBe(1);
@@ -84,7 +84,7 @@ describe('events', () => {
 		});
 
 		const manager = new EventsManager();
-		const result = await manager.events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 1);
+		const result = await manager.getEvents(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 1);
 		expect(result[0][1][0].name).toEqual('Test Event');
 
 		vol.fromJSON({
@@ -92,7 +92,7 @@ describe('events', () => {
 		});
 		vi.advanceTimersByTime(10_000);
 
-		const newResult = await manager.events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 1);
+		const newResult = await manager.getEvents(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 1);
 		expect(newResult[0][1][0].name).toEqual('Test Event 2');
 		vi.useRealTimers();
 	});
@@ -105,19 +105,19 @@ describe('events', () => {
 		});
 
 		const manager = new EventsManager();
-		let result = await manager.events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 1);
+		let result = await manager.getEvents(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 1);
 		expect(result[0][1][0].name).toEqual('Test Event');
 
 		fs.appendFileSync('./data.yaml', `\n${exampleEventYaml2}`);
 		vi.advanceTimersByTime(10_000);
 
-		result = await manager.events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 2);
+		result = await manager.getEvents(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 2);
 		expect(result[1][1][0].name).toEqual('Test Event 2');
 
 		fs.appendFileSync('./data.yaml', `\n${earlyExampleEventYaml}`);
 		vi.advanceTimersByTime(10_000);
 
-		result = await manager.events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 2);
+		result = await manager.getEvents(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 2);
 		expect(result[0][1][0].name).toEqual("Last Year's Test Event");
 
 		vi.useRealTimers();
@@ -130,7 +130,7 @@ describe('events', () => {
 		});
 
 		const manager = new EventsManager();
-		const result = await manager.events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 5);
+		const result = await manager.getEvents(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 5);
 
 		expect(result).toBeInstanceOf(Array);
 		expect(result.length).toBe(5);
@@ -148,7 +148,7 @@ describe('events', () => {
 		});
 
 		const manager = new EventsManager();
-		const result = await manager.events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 5);
+		const result = await manager.getEvents(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 5);
 
 		expect(result).toBeInstanceOf(Array);
 		expect(result.length).toBe(5);
