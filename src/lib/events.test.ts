@@ -51,6 +51,11 @@ const biweeklyEventWithEndTimeYaml = `
 `;
 
 describe('events', () => {
+	test('fails if the data file is not found', async () => {
+		vi.stubEnv('DATA_FILE', 'data.yaml');
+		await expect(events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 1)).rejects.toThrow('Data file not found: data.yaml');
+	});
+
 	test('loads the example data when environment variable is unset', async () => {
 		vi.stubEnv('DATA_FILE', undefined);
 		vol.fromJSON({

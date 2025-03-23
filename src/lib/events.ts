@@ -8,8 +8,9 @@ import { parse as yamlParse } from 'yaml';
 
 let INITIALIZED = false;
 let CACHED_RESULTS: { [key: string]: [Event[], AsyncGenerator<Event, void, unknown>] } = {};
-let PARSED_EVENTS: Promise<Event[]>;
-let WATCHER: FSWatcher;
+let PARSED_EVENTS: Promise<Event[]> = Promise.resolve([]);
+let DATA_FILE: Promise<fsp.FileHandle> | undefined = undefined;
+let WATCHER: FSWatcher | undefined = undefined;
 
 export interface EventSummary {
 	name: string;
@@ -21,31 +22,45 @@ export interface EventSummary {
 }
 
 function init() {
-	const DATA_FILE = process.env.DATA_FILE ?? 'example/data.yaml';
+	const DATA_FILENAME = process.env.DATA_FILE ?? 'example/data.yaml';
 
 	if (INITIALIZED) throw new Error('Already initialized - `init` should only be called once');
-
-	console.log(`Using data file: ${DATA_FILE}`);
-
-	// TODO: Make this first call lazy
-	PARSED_EVENTS = parseEvents();
 
 	const debouncedParse = debounce(() => {
 		CACHED_RESULTS = {};
 		PARSED_EVENTS = parseEvents();
 	}, 500);
 
-	// When the data file changes, we parse it again and clear the old cache
-	WATCHER = watch(DATA_FILE, eventType => {
-		console.log(`Data file changed (${eventType})`);
-		if (eventType === 'change') debouncedParse();
-	});
+	console.log(`Using data file: ${DATA_FILENAME}`);
+
+	// Open the data file and start watching it (we watch the file only after opening it to ensure it exists)
+	DATA_FILE = fsp
+		.open(DATA_FILENAME)
+		.then(file => {
+			// When the data file changes, we parse it again and clear the old cache
+			WATCHER = watch(DATA_FILENAME, eventType => {
+				console.log(`Data file changed (${eventType})`);
+				if (eventType === 'change') debouncedParse();
+			});
+			return file;
+		})
+		.catch(() => {
+			throw new Error(`Data file not found: ${DATA_FILENAME}`);
+		});
+
+	// TODO: Make this first call lazy
+	PARSED_EVENTS = parseEvents();
 
 	INITIALIZED = true;
 
 	async function parseEvents() {
+		const file = await DATA_FILE!.catch(error => {
+			console.log('Error opening data file');
+			console.log(error);
+			throw error;
+		});
 		console.log('Parsing events data file');
-		const eventDataFileContent = await fsp.readFile(DATA_FILE, {
+		const eventDataFileContent = await file.readFile({
 			encoding: 'utf8',
 		});
 
@@ -65,7 +80,14 @@ export function reset() {
 	INITIALIZED = false;
 	CACHED_RESULTS = {};
 	PARSED_EVENTS = Promise.resolve([]);
-	WATCHER.close();
+	WATCHER?.close();
+	WATCHER = undefined;
+	DATA_FILE?.then(file => file.close()).catch(error => {
+		// Ignore EBADF errors since I don't know how to avoid them
+		if ('code' in error && error.code === 'EBADF') return;
+		throw error;
+	});
+	DATA_FILE = undefined;
 
 	// console.log was spied on in the test file
 	console.log('Reset');
