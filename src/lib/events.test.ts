@@ -1,15 +1,11 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { events, reset } from './events';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { DateTime } from 'luxon';
+import { EventsManager } from './events';
 import { vol } from 'memfs';
 
 vi.mock('node:fs');
 vi.mock('node:fs/promises');
-
-beforeEach(() => {
-	reset();
-});
 
 afterEach(() => {
 	vol.reset();
@@ -53,7 +49,8 @@ const biweeklyEventWithEndTimeYaml = `
 describe('events', () => {
 	test('fails if the data file is not found', async () => {
 		vi.stubEnv('DATA_FILE', 'data.yaml');
-		await expect(events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 1)).rejects.toThrow('Data file not found: data.yaml');
+		const manager = new EventsManager();
+		await expect(manager.events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 1)).rejects.toThrow('Data file not found: data.yaml');
 	});
 
 	test('loads the example data when environment variable is unset', async () => {
@@ -62,7 +59,8 @@ describe('events', () => {
 			'./example/data.yaml': `upcoming:${exampleEventYaml}`,
 		});
 
-		const result = await events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 1);
+		const manager = new EventsManager();
+		const result = await manager.events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 1);
 
 		expect(result).toBeInstanceOf(Array);
 		expect(result.length).toBe(1);
@@ -78,7 +76,8 @@ describe('events', () => {
 			'./data.yaml': `upcoming:${exampleEventYaml}`,
 		});
 
-		const result = await events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 1);
+		const manager = new EventsManager();
+		const result = await manager.events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 1);
 		expect(result[0][1][0].name).toEqual('Test Event');
 
 		vol.fromJSON({
@@ -86,7 +85,7 @@ describe('events', () => {
 		});
 		vi.advanceTimersByTime(10_000);
 
-		const newResult = await events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 1);
+		const newResult = await manager.events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 1);
 		expect(newResult[0][1][0].name).toEqual('Test Event 2');
 		vi.useRealTimers();
 	});
@@ -97,7 +96,8 @@ describe('events', () => {
 			'./biweekly/data.yaml': `upcoming:${biweeklyEventYaml}`,
 		});
 
-		const result = await events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 5);
+		const manager = new EventsManager();
+		const result = await manager.events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 5);
 
 		expect(result).toBeInstanceOf(Array);
 		expect(result.length).toBe(5);
@@ -114,7 +114,8 @@ describe('events', () => {
 			'./biweekly/data.yaml': `upcoming:${biweeklyEventWithEndTimeYaml}`,
 		});
 
-		const result = await events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 5);
+		const manager = new EventsManager();
+		const result = await manager.events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 5);
 
 		expect(result).toBeInstanceOf(Array);
 		expect(result.length).toBe(5);
@@ -123,20 +124,5 @@ describe('events', () => {
 		expect(result[2][0]).toEqual('Wed Mar 29 2023');
 		expect(result[3][0]).toEqual('Wed Apr 12 2023');
 		expect(result[4][0]).toEqual('Wed Apr 26 2023');
-	});
-});
-
-describe('reset', () => {
-	test('throws an error if not in test environment', () => {
-		vi.stubEnv('NODE_ENV', 'production');
-		expect(() => {
-			reset();
-		}).toThrow();
-	});
-
-	test('does nothing if not initialized', () => {
-		vi.spyOn(console, 'log');
-		reset();
-		expect(console.log).not.toHaveBeenCalled();
 	});
 });

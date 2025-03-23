@@ -1,13 +1,13 @@
 import { type NextRequest } from 'next/server';
 import { number, ValidationError, string } from 'yup';
-import { events } from '@/lib/events';
+import { EventsManager } from '@/lib/events';
 import { dateTimeSchema } from '@/lib/schemas';
 import { DateTime } from 'luxon';
 
 const countSchema = number().required('`count` query parameter is required').min(0, '`count` must not be negative');
 const timezoneSchema = string()
 	.required('`timezone` query parameter is required')
-	.matches(/^[a-zA-Z0-9\/_+-]+$/, '`timezone` must be a valid timezone');
+	.matches(/^[a-zA-Z0-9\/_+-]+\/[a-zA-Z0-9\/_+-]+$/, '`timezone` must be a valid IANA timezone');
 
 export async function GET(request: NextRequest) {
 	let count;
@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
 		}
 	}
 
+	const manager = new EventsManager();
 	// TODO: Add a timeout to keep the client from waiting forever
-	return Response.json(await events(date, count));
+	return Response.json(await manager.events(date, count));
 }
