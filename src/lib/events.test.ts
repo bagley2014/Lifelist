@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
+import { fs, vol } from 'memfs';
 
 import { DateTime } from 'luxon';
 import { EventsManager } from './events';
-import { vol } from 'memfs';
 
 vi.mock('node:fs');
 vi.mock('node:fs/promises');
@@ -27,6 +27,13 @@ const exampleEventYaml2 = `
     start: "2023-01-12"
     tags:
       - "Test Tag"
+`;
+const earlyExampleEventYaml = `
+  - name: "Last Year's Test Event"
+    priority: 2
+    location: null
+    start: "2022-10-01"
+    tags: []
 `;
 const biweeklyEventYaml = `
   - name: "Biweekly Event"
@@ -69,7 +76,7 @@ describe('events', () => {
 		expect(result[0][1][0].name).toEqual('Test Event');
 	});
 
-	test('watches the data file', async () => {
+	test('watches the data file being overwritten', async () => {
 		vi.useFakeTimers();
 		vi.stubEnv('DATA_FILE', 'data.yaml');
 		vol.fromJSON({
@@ -87,6 +94,32 @@ describe('events', () => {
 
 		const newResult = await manager.events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 1);
 		expect(newResult[0][1][0].name).toEqual('Test Event 2');
+		vi.useRealTimers();
+	});
+
+	test('watches the data file being modified', async () => {
+		vi.useFakeTimers();
+		vi.stubEnv('DATA_FILE', 'data.yaml');
+		vol.fromJSON({
+			'./data.yaml': `upcoming:${exampleEventYaml}`,
+		});
+
+		const manager = new EventsManager();
+		let result = await manager.events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 1);
+		expect(result[0][1][0].name).toEqual('Test Event');
+
+		fs.appendFileSync('./data.yaml', `\n${exampleEventYaml2}`);
+		vi.advanceTimersByTime(10_000);
+
+		result = await manager.events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 2);
+		expect(result[1][1][0].name).toEqual('Test Event 2');
+
+		fs.appendFileSync('./data.yaml', `\n${earlyExampleEventYaml}`);
+		vi.advanceTimersByTime(10_000);
+
+		result = await manager.events(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 2);
+		expect(result[0][1][0].name).toEqual("Last Year's Test Event");
+
 		vi.useRealTimers();
 	});
 

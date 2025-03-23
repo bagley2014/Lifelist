@@ -18,59 +18,48 @@ export interface EventSummary {
 export class EventsManager {
 	private cachedResults: { [key: string]: [Event[], AsyncGenerator<Event, void, unknown>] } = {};
 	private parsedEvents: Promise<Event[]> = Promise.resolve([]);
-	private dataFile: Promise<fsp.FileHandle> | undefined = undefined;
 
 	constructor() {
 		const dataFilename = process.env.DATA_FILE ?? 'example/data.yaml';
+		console.log(`Initializing ${EventsManager.name} using data file: ${dataFilename}`);
+
+		const parseEvents = async (): Promise<Event[]> => {
+			console.log('Parsing events data file');
+			const eventDataFileContent = await fsp
+				.readFile(dataFilename, {
+					encoding: 'utf8',
+				})
+				.catch(() => {
+					throw new Error(`Data file not found: ${dataFilename}`);
+				});
+
+			const events = dataSchema.validateSync(yamlParse(eventDataFileContent)).upcoming;
+			this.sortEvents(events);
+
+			console.log('Events parsed');
+			return events;
+		};
 
 		const debouncedParse = debounce(() => {
 			this.cachedResults = {};
-			this.parsedEvents = this.parseEvents();
+			this.parsedEvents = parseEvents();
 		}, 500);
 
-		console.log(`Initializing ${EventsManager.name} using data file: ${dataFilename}`);
-
-		// Open the data file and start watching it (we watch the file only after opening it to ensure it exists)
-		this.dataFile = fsp
-			.open(dataFilename)
-			.then(file => {
-				// When the data file changes, we parse it again and clear the old cache
-				watch(dataFilename, eventType => {
-					console.log(`Data file changed (${eventType})`);
-					if (eventType === 'change') debouncedParse();
-				});
-				return file;
-			})
-			.catch(() => {
-				throw new Error(`Data file not found: ${dataFilename}`);
+		// TODO: Maybe make this first call lazy
+		this.parsedEvents = parseEvents().then(events => {
+			// Start watching the data file for changes after we first parse it
+			watch(dataFilename, eventType => {
+				console.log(`Data file changed (${eventType})`);
+				if (eventType === 'change') debouncedParse();
 			});
-
-		// TODO: Make this first call lazy
-		this.parsedEvents = this.parseEvents();
+			return events;
+		});
 	}
 
 	async events(from: DateTime, count: number): Promise<[string, EventSummary[]][]> {
 		const events = await this.enumerateEvents(from, count);
 		const groups = this.groupAndCleanEvents(events);
 		return groups;
-	}
-
-	private async parseEvents(): Promise<Event[]> {
-		const file = await this.dataFile!.catch(error => {
-			console.log('Error opening data file');
-			console.log(error);
-			throw error;
-		});
-		console.log('Parsing events data file');
-		const eventDataFileContent = await file.readFile({
-			encoding: 'utf8',
-		});
-
-		const events = dataSchema.validateSync(yamlParse(eventDataFileContent)).upcoming;
-		this.sortEvents(events);
-
-		console.log('Events parsed');
-		return events;
 	}
 
 	private sortEvents(events: Event[]): void {
