@@ -15,10 +15,17 @@ export interface EventSummary {
 	tags: string[];
 }
 
-export class EventsManager {
-	private cachedResults: { [key: string]: [Event[], AsyncGenerator<Event, void, unknown>] } = {};
-	private parsedEvents: Promise<Event[]> = Promise.resolve([]);
+function toDateString(date: DateTime): string {
+	// The client expects dates in a form like "Wed Mar 19 2025" since that's what `Date.toDateString` outputs
+	return date.toFormat('ccc LLL dd yyyy');
+}
 
+function sortEvents(events: Event[]): void {
+	// Sort the events so that the earliest ones come first (null represents "immediate" TODOs and so should come first)
+	inPlaceSort(events).asc(e => e.start?.valueOf() ?? -1);
+}
+
+export class EventsManager {
 	constructor() {
 		const dataFilename = process.env.DATA_FILE ?? 'example/data.yaml';
 		console.log(`Initializing ${EventsManager.name} using data file: ${dataFilename}`);
@@ -34,7 +41,7 @@ export class EventsManager {
 				});
 
 			const events = dataSchema.validateSync(yamlParse(eventDataFileContent)).upcoming;
-			this.sortEvents(events);
+			sortEvents(events);
 
 			console.log('Events parsed');
 			return events;
@@ -62,9 +69,59 @@ export class EventsManager {
 		return groups;
 	}
 
-	private sortEvents(events: Event[]): void {
-		// Sort the events so that the earliest ones come first (null represents "immediate" TODOs and so should come first)
-		inPlaceSort(events).asc(e => e.start?.valueOf() ?? -1);
+	private groupAndCleanEvents(events: Event[]): [string, EventSummary[]][] {
+		// The client prints the times as is, so formatting is left to the server
+		const getTime = (date: DateTime) =>
+			date.toLocaleString({
+				hour: 'numeric',
+				minute: 'numeric',
+				hour12: true,
+				timeZoneName: 'shortGeneric',
+			});
+
+		const groups: { [key: string]: EventSummary[] } = {};
+
+		for (const event of events) {
+			const key = event.start ? toDateString(event.start) : 'TODO';
+			if (!groups[key]) groups[key] = [];
+			groups[key].push({
+				name: event.name,
+				priority: event.priority,
+				location: event.location,
+				startTime: event.start && (event.start.hour !== 0 || event.start.minute !== 0) ? getTime(event.start!) : undefined,
+				endTime: event.end && (event.end.hour !== 0 || event.end.minute !== 0) ? getTime(event.end!) : undefined,
+				tags: event.tags,
+			});
+		}
+
+		const results: [string, EventSummary[]][] = Object.keys(groups).map(key => {
+			inPlaceSort(groups[key]).desc(e => e.priority);
+			return [key, groups[key]];
+		});
+		inPlaceSort(results).asc([([key]) => new Date(key === 'TODO' ? '1970-01-01' : key)]);
+		return results;
+	}
+
+	private async enumerateEvents(from: DateTime, count: number): Promise<Event[]> {
+		// The key for the cache is the date without the time
+		const cacheKey = toDateString(from);
+
+		// Initialize the cache if it didn't already exist
+		if (!this.cachedResults[cacheKey]) this.cachedResults[cacheKey] = [[], this.enumerateEventsFromDate(from)];
+
+		// If we already have enough results, return them
+		if (this.cachedResults[cacheKey][0].length >= count) return this.cachedResults[cacheKey][0].slice(0, count);
+
+		// Otherwise, keep generating events until we have enough
+		while (this.cachedResults[cacheKey][0].length < count) {
+			const nextEvent = await this.cachedResults[cacheKey][1].next();
+			if (nextEvent.done) {
+				break;
+			}
+			this.cachedResults[cacheKey][0].push(nextEvent.value);
+		}
+
+		return this.cachedResults[cacheKey][0];
 	}
 
 	private async *enumerateEventsFromDate(date: DateTime) {
@@ -94,7 +151,7 @@ export class EventsManager {
 				}
 
 				// Sort the events after adding a new one
-				this.sortEvents(events);
+				sortEvents(events);
 			}
 
 			// Skip events that have already occurred
@@ -109,7 +166,7 @@ export class EventsManager {
 				events.push(nextEvent);
 
 				// Sort the events after adding a new one
-				this.sortEvents(events);
+				sortEvents(events);
 			}
 
 			// Return valid upcoming events
@@ -119,63 +176,6 @@ export class EventsManager {
 		}
 	}
 
-	private toDateString(date: DateTime): string {
-		// The client expects dates in a form like "Wed Mar 19 2025" since that's what `Date.toDateString` outputs
-		return date.toFormat('ccc LLL dd yyyy');
-	}
-
-	private async enumerateEvents(from: DateTime, count: number): Promise<Event[]> {
-		// The key for the cache is the date without the time
-		const cacheKey = this.toDateString(from);
-
-		// Initialize the cache if it didn't already exist
-		if (!this.cachedResults[cacheKey]) this.cachedResults[cacheKey] = [[], this.enumerateEventsFromDate(from)];
-
-		// If we already have enough results, return them
-		if (this.cachedResults[cacheKey][0].length >= count) return this.cachedResults[cacheKey][0].slice(0, count);
-
-		// Otherwise, keep generating events until we have enough
-		while (this.cachedResults[cacheKey][0].length < count) {
-			const nextEvent = await this.cachedResults[cacheKey][1].next();
-			if (nextEvent.done) {
-				break;
-			}
-			this.cachedResults[cacheKey][0].push(nextEvent.value);
-		}
-
-		return this.cachedResults[cacheKey][0];
-	}
-
-	private groupAndCleanEvents(events: Event[]): [string, EventSummary[]][] {
-		// The client prints the times as is, so formatting is left to the server
-		const getTime = (date: DateTime) =>
-			date.toLocaleString({
-				hour: 'numeric',
-				minute: 'numeric',
-				hour12: true,
-				timeZoneName: 'shortGeneric',
-			});
-
-		const groups: { [key: string]: EventSummary[] } = {};
-
-		for (const event of events) {
-			const key = event.start ? this.toDateString(event.start) : 'TODO';
-			if (!groups[key]) groups[key] = [];
-			groups[key].push({
-				name: event.name,
-				priority: event.priority,
-				location: event.location,
-				startTime: event.start && (event.start.hour !== 0 || event.start.minute !== 0) ? getTime(event.start!) : undefined,
-				endTime: event.end && (event.end.hour !== 0 || event.end.minute !== 0) ? getTime(event.end!) : undefined,
-				tags: event.tags,
-			});
-		}
-
-		const results: [string, EventSummary[]][] = Object.keys(groups).map(key => {
-			inPlaceSort(groups[key]).desc(e => e.priority);
-			return [key, groups[key]];
-		});
-		inPlaceSort(results).asc([([key]) => new Date(key === 'TODO' ? '1970-01-01' : key)]);
-		return results;
-	}
+	private cachedResults: { [key: string]: [Event[], AsyncGenerator<Event, void, unknown>] } = {};
+	private parsedEvents: Promise<Event[]> = Promise.resolve([]);
 }
