@@ -8,6 +8,7 @@ import DarkModeToggle from './darkModeToggle';
 import { EventSummary } from '@/lib/eventManager';
 import { IoLogoGithub } from 'react-icons/io';
 import LoadingIndicator from './loadingIndicator';
+import NewButtonModal from './newButtonModal';
 import RangeSlider from 'react-range-slider-input';
 
 type DateEntry = [string, EventSummary[]];
@@ -167,8 +168,9 @@ const EventCalendar = () => {
 		<div className="max-w-4xl mx-auto bg-gray-50 dark:bg-gray-900 min-h-screen">
 			{/* Sticky Header with Filters */}
 			<div className="sticky top-0 bg-white dark:bg-gray-800 shadow-md p-4 z-10">
+				<NewButtonModal classNames="absolute right-4" />
 				<IoLogoGithub className="absolute left-4" size={28} cursor={'pointer'} onClick={() => window.open('https://github.com/bagley2014/Lifelist')} />
-				<DarkModeToggle className="absolute right-4 cursor-pointer" />
+				<DarkModeToggle className="absolute left-12 cursor-pointer" />
 
 				<h1 className="text-2xl font-bold mb-4 text-center dark:text-white">Lifelist</h1>
 

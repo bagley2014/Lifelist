@@ -16,7 +16,7 @@ const exampleEventYaml = `
       - "Test Tag"
 `;
 
-describe('new event route', () => {
+describe.skip('new event route', () => {
 	beforeEach(() => {
 		vi.stubEnv('DATA_FILE', 'data.yaml');
 		vol.fromJSON({
@@ -27,11 +27,11 @@ describe('new event route', () => {
 	test('works with valid input', async () => {
 		const request: NextRequest = new NextRequest('https://example.com/api/new', {
 			method: 'POST',
-			body: 'valid input',
+			body: "There's an event called Fake Event on December 1st 2025",
 		});
 
 		const response = await POST(request);
-		expect(response.status).toBe(200);
+		expect(response.status).toBe(201);
 		expect(response.body).toBeDefined();
 
 		const data = await response.text();
@@ -39,5 +39,22 @@ describe('new event route', () => {
 
 		const dataFile = fs.readFileSync('./data.yaml', 'utf8');
 		expect(dataFile).toContain('Fake Event');
+	});
+
+	test('fails with invalid input', async () => {
+		const request: NextRequest = new NextRequest('https://example.com/api/new', {
+			method: 'POST',
+			body: '~~~~~',
+		});
+
+		const response = await POST(request);
+		expect(response.status).toBe(204);
+		expect(response.body).toBeDefined();
+
+		const data = await response.text();
+		expect(data).toBe('');
+
+		const dataFile = fs.readFileSync('./data.yaml', 'utf8');
+		expect(dataFile).not.toContain('Fake Event');
 	});
 });

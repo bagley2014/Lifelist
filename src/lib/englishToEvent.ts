@@ -11,8 +11,8 @@ The event MUST have the following properties:
 - priority: a number between 0 and 10, inclusive
 The event may optionally have the following properties:
 - location: a string that is not empty
-- start: a string that is a valid date (time optional)
-- end: a string that is a valid date (time optional)
+- start: a string that is a valid date (time optional) that won't be included on TODO items
+- end: a string that is a valid date (time optional) that won't be included on events without a start date
 - frequency: one of the following strings: "once", "daily", "weekly", "biweekly", "monthly", "yearly"
 `);
 	return llm;
