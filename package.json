@@ -10,6 +10,7 @@
 		"test": "vitest"
 	},
 	"dependencies": {
+		"@themaximalist/llm.js": "^0.8.0",
 		"chrono-node": "^2.7.8",
 		"fast-sort": "^3.4.1",
 		"ldrs": "^1.1.2",
