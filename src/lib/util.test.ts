@@ -19,14 +19,37 @@ describe('debounce', () => {
 
 		vi.advanceTimersByTime(100);
 		debounced();
-		debounced();
+		vi.advanceTimersByTime(900);
 		expect(callback).not.toHaveBeenCalled();
 
-		vi.advanceTimersByTime(1000);
+		vi.advanceTimersByTime(100);
 		expect(callback).toHaveBeenCalledTimes(1);
 
 		debounced();
 		vi.advanceTimersByTime(1000);
 		expect(callback).toHaveBeenCalledTimes(2);
+	});
+
+	test('calls callback immediately', async () => {
+		const callback = vi.fn();
+		const debounced = debounce(callback, 1000);
+
+		debounced();
+		expect(callback).toHaveBeenCalledTimes(0);
+
+		debounced.doImmediately();
+		vi.advanceTimersByTime(1);
+		expect(callback).toHaveBeenCalledTimes(1);
+	});
+
+	test('cancels the debounce', async () => {
+		const callback = vi.fn();
+		const debounced = debounce(callback, 1000);
+
+		debounced();
+		debounced.cancel();
+		vi.advanceTimersByTime(1500);
+
+		expect(callback).not.toHaveBeenCalled();
 	});
 });

@@ -5,7 +5,7 @@ import 'react-range-slider-input/dist/style.css';
 import React, { useEffect, useMemo, useState } from 'react';
 
 import DarkModeToggle from './darkModeToggle';
-import { EventSummary } from '@/lib/events';
+import { EventSummary } from '@/lib/eventManager';
 import { IoLogoGithub } from 'react-icons/io';
 import LoadingIndicator from './loadingIndicator';
 import RangeSlider from 'react-range-slider-input';
