@@ -193,7 +193,7 @@ export class EventsManager {
 			}
 
 			// Add a new event for events that span multiple days
-			if (event.end && event.end.day > event.start!.day) {
+			if (event.end && event.end.set({ hour: 0, minute: 0, second: 0 }) > event.start!.set({ hour: 0, minute: 0, second: 0 })) {
 				// The schema ensures that any event with an end date has a start date
 				const nextEvent = { ...event, start: event.start!.plus({ days: 1 }) };
 				events.push(nextEvent);

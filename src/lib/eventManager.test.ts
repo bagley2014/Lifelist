@@ -94,11 +94,14 @@ const weekdayEventWithEndTimeYaml = `
     tags: []
 `;
 const multiDayEventYaml = `
-  - name: "Long Event"
-    priority: 4
-    start: "2023-01-01"
-    end: "2023-01-03"
-    tags: []
+  - name: Dragon*Con
+    priority: 10
+    location: Atlanta
+    start: August 27, 2025
+    end: September 1, 2025
+    frequency: once
+    tags:
+      - Convention
 `;
 const wellOrderedEventYaml = `
   - name: Dragon*Con
@@ -374,13 +377,16 @@ describe('getEvents', () => {
 		});
 
 		const manager = await EventsManager.create();
-		const result = await manager.getEvents(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 5);
+		const result = await manager.getEvents(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 6);
 
 		expect(result).toBeInstanceOf(Array);
-		expect(result.length).toBe(3);
-		expect(result[0][0]).toEqual('Sun Jan 01 2023');
-		expect(result[1][0]).toEqual('Mon Jan 02 2023');
-		expect(result[2][0]).toEqual('Tue Jan 03 2023');
+		expect(result.length).toBe(6);
+		expect(result[0][0]).toEqual('Wed Aug 27 2025');
+		expect(result[1][0]).toEqual('Thu Aug 28 2025');
+		expect(result[2][0]).toEqual('Fri Aug 29 2025');
+		expect(result[3][0]).toEqual('Sat Aug 30 2025');
+		expect(result[4][0]).toEqual('Sun Aug 31 2025');
+		expect(result[5][0]).toEqual('Mon Sep 01 2025');
 	});
 });
 
