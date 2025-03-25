@@ -179,6 +179,8 @@ describe('getEvents', () => {
 		fs.appendFileSync('./data.yaml', `\n${exampleEventYaml2}`);
 		vi.advanceTimersByTime(10_000);
 
+		await new Promise(resolve => setTimeout(resolve, 1000));
+
 		result = await manager.getEvents(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 2);
 		expect(result[1][1][0].name).toEqual('Test Event 2');
 

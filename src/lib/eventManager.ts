@@ -1,9 +1,10 @@
 import { DebouncedFunction, debounce, yamlStringifyReplacer } from './util';
 import { Event, Frequency, dataSchema } from './schemas';
-import { promises as fsp, watch } from 'fs';
 import { parse as yamlParse, stringify as yamlStringify } from 'yaml';
 
 import { DateTime } from 'luxon';
+import chokidar from 'chokidar';
+import { promises as fsp } from 'fs';
 import { inPlaceSort } from 'fast-sort';
 
 export interface EventSummary {
@@ -61,9 +62,9 @@ export class EventsManager {
 		// TODO: Maybe make this first call lazy
 		manager.parsingWork = parseEvents().then(_ => {
 			// Start watching the data file for changes after we first parse it
-			watch(manager.dataFilename, eventType => {
-				console.log(`Data file changed (${eventType})`);
-				if (eventType === 'change') manager.debouncedParse();
+			chokidar.watch(manager.dataFilename, { persistent: false, usePolling: true }).on('all', (event, path) => {
+				console.log(`Data file changed (${event} | ${path})`);
+				if (event === 'change') manager.debouncedParse();
 			});
 		});
 		await manager.parsingWork;
