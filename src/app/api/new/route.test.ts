@@ -16,7 +16,7 @@ const exampleEventYaml = `
       - "Test Tag"
 `;
 
-describe.skip('new event route', () => {
+describe('new event route', () => {
 	beforeEach(() => {
 		vi.stubEnv('DATA_FILE', 'data.yaml');
 		vol.fromJSON({

@@ -4,7 +4,7 @@ import { describe, expect, test } from 'vitest';
 
 import { englishToEvent } from './englishToEvent';
 
-describe.skip('englishToEvent', () => {
+describe('englishToEvent', () => {
 	test('works with a simple event', async () => {
 		const result = await englishToEvent('I have a Lifelist demo at 3pm on April 1st');
 		expect(result?.name.toLowerCase()).toBe('lifelist demo');
