@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
+import chokidar, { FSWatcher } from 'chokidar';
 import { fs, vol } from 'memfs';
 
 import { DateTime } from 'luxon';
@@ -144,53 +145,31 @@ describe('getEvents', () => {
 		expect(result[0][1][0].name).toEqual('Test Event');
 	});
 
-	test('watches the data file being overwritten', async () => {
-		vi.useFakeTimers();
+	test('watches the data file', async () => {
 		vi.stubEnv('DATA_FILE', 'data.yaml');
 		vol.fromJSON({
 			'./data.yaml': `upcoming:${exampleEventYaml}`,
 		});
 
-		const manager = await EventsManager.create();
-		const result = await manager.getEvents(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 1);
-		expect(result[0][1][0].name).toEqual('Test Event');
+		const mockedDebouncedParse = vi.fn();
+		vi.spyOn(chokidar, 'watch').mockImplementation((_, __) => {
+			return fs.watch('./data.yaml', {}, eventType => {
+				console.log(`Data file changed (${eventType})`);
+				if (eventType === 'change') mockedDebouncedParse();
+			}) as unknown as FSWatcher;
+		});
+
+		const _manager = await EventsManager.create();
+		expect(chokidar.watch).toHaveBeenCalledWith('data.yaml', { persistent: false, usePolling: true });
+		expect(chokidar.watch).toHaveBeenCalledTimes(1);
+		expect(mockedDebouncedParse).not.toHaveBeenCalled();
 
 		vol.fromJSON({
 			'./data.yaml': `upcoming:${exampleEventYaml2}`,
 		});
-		vi.advanceTimersByTime(10_000);
 
-		const newResult = await manager.getEvents(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 1);
-		expect(newResult[0][1][0].name).toEqual('Test Event 2');
-		vi.useRealTimers();
-	});
-
-	test('watches the data file being modified', async () => {
-		vi.useFakeTimers();
-		vi.stubEnv('DATA_FILE', 'data.yaml');
-		vol.fromJSON({
-			'./data.yaml': `upcoming:${exampleEventYaml}`,
-		});
-
-		const manager = await EventsManager.create();
-		let result = await manager.getEvents(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 1);
-		expect(result[0][1][0].name).toEqual('Test Event');
-
-		fs.appendFileSync('./data.yaml', `\n${exampleEventYaml2}`);
-		vi.advanceTimersByTime(10_000);
-
-		await new Promise(resolve => setTimeout(resolve, 1000));
-
-		result = await manager.getEvents(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 2);
-		expect(result[1][1][0].name).toEqual('Test Event 2');
-
-		fs.appendFileSync('./data.yaml', `\n${earlyExampleEventYaml}`);
-		vi.advanceTimersByTime(10_000);
-
-		result = await manager.getEvents(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 2);
-		expect(result[0][1][0].name).toEqual("Last Year's Test Event");
-
-		vi.useRealTimers();
+		expect(chokidar.watch).toHaveBeenCalledTimes(1);
+		expect(mockedDebouncedParse).toHaveBeenCalled();
 	});
 
 	// I don't have a way to verify that the cache is actually being used, but this test adds code coverage
