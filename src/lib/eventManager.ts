@@ -159,6 +159,9 @@ export class EventsManager {
 	}
 
 	private async *enumerateEventsFromDate(date: DateTime) {
+		// Ensure we're only comparing dates, not times
+		date = date.set({ hour: 0, minute: 0, second: 0 });
+
 		// Clone the parsed events data so we can modify it
 		const events = this.parsedEvents.slice();
 
@@ -189,7 +192,7 @@ export class EventsManager {
 			}
 
 			// Skip events that have already occurred
-			if (event.start && event.start < date) {
+			if (event.start && date > event.start) {
 				continue;
 			}
 
@@ -204,7 +207,7 @@ export class EventsManager {
 			}
 
 			// Return valid upcoming events
-			if (event.start === null || event.start.set({ hour: 0, minute: 0, second: 0 }) >= date.set({ hour: 0, minute: 0, second: 0 })) {
+			if (event.start === null || date <= event.start) {
 				yield event;
 			}
 		}
