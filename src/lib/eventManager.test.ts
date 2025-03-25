@@ -80,11 +80,13 @@ const biweeklyEventWithEndTimeYaml = `
       - Pathfinder
 `;
 const weekdayEventYaml = `
-  - name: "Weekday Event"
+  - name: Work
     priority: 1
-    start: "2023-01-09"
-    frequency: "weekdays"
-    tags: []
+    location: Online
+    start: January 1, 2025
+    frequency: weekdays
+    tags:
+      - Work
 `;
 const weekdayEventWithEndTimeYaml = `
   - name: "Prime Time TV"
@@ -312,20 +314,20 @@ describe('getEvents', () => {
 		});
 
 		const manager = await EventsManager.create();
-		const result = await manager.getEvents(DateTime.fromISO('2022-01-01T00:00:00.000-08:00'), 10);
+		const result = await manager.getEvents(DateTime.fromISO('2025-03-25T00:00:00.000-07:00'), 10);
 
 		expect(result).toBeInstanceOf(Array);
 		expect(result.length).toBe(10);
-		expect(result[0][0]).toEqual('Mon Jan 09 2023');
-		expect(result[1][0]).toEqual('Tue Jan 10 2023');
-		expect(result[2][0]).toEqual('Wed Jan 11 2023');
-		expect(result[3][0]).toEqual('Thu Jan 12 2023');
-		expect(result[4][0]).toEqual('Fri Jan 13 2023');
-		expect(result[5][0]).toEqual('Mon Jan 16 2023');
-		expect(result[6][0]).toEqual('Tue Jan 17 2023');
-		expect(result[7][0]).toEqual('Wed Jan 18 2023');
-		expect(result[8][0]).toEqual('Thu Jan 19 2023');
-		expect(result[9][0]).toEqual('Fri Jan 20 2023');
+		expect(result[0][0]).toEqual('Tue Mar 25 2025');
+		expect(result[1][0]).toEqual('Wed Mar 26 2025');
+		expect(result[2][0]).toEqual('Thu Mar 27 2025');
+		expect(result[3][0]).toEqual('Fri Mar 28 2025');
+		expect(result[4][0]).toEqual('Mon Mar 31 2025');
+		expect(result[5][0]).toEqual('Tue Apr 01 2025');
+		expect(result[6][0]).toEqual('Wed Apr 02 2025');
+		expect(result[7][0]).toEqual('Thu Apr 03 2025');
+		expect(result[8][0]).toEqual('Fri Apr 04 2025');
+		expect(result[9][0]).toEqual('Mon Apr 07 2025');
 	});
 
 	test('handles weekday events with end times', async () => {

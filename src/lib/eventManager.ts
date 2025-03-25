@@ -204,7 +204,7 @@ export class EventsManager {
 			}
 
 			// Return valid upcoming events
-			if (event.start === null || event.start > date) {
+			if (event.start === null || event.start.set({ hour: 0, minute: 0, second: 0 }) >= date.set({ hour: 0, minute: 0, second: 0 })) {
 				yield event;
 			}
 		}
