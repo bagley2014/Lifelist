@@ -383,6 +383,29 @@ describe('addEvent', () => {
 		tags: ['New Tag'],
 	});
 
+	const newEventWithTimezone = eventSchema.cast({
+		name: 'New East Coast Event',
+		priority: 3,
+		location: 'Florida',
+		start: DateTime.fromObject(
+			{
+				year: 2024,
+				month: 1,
+				day: 25,
+				hour: 19,
+				minute: 47,
+			},
+			{ zone: 'America/New_York' },
+		),
+		tags: [],
+	});
+
+	const newTodoEvent = eventSchema.cast({
+		name: 'New Todo Event',
+		priority: 10,
+		tags: [],
+	});
+
 	test('fails if the data file is not found', async () => {
 		vi.stubEnv('DATA_FILE', 'data.yaml');
 		await expect(EventsManager.create()).rejects.toThrow('Data file not found: data.yaml');
@@ -414,7 +437,43 @@ describe('addEvent', () => {
 		expect(data.upcoming[1].name).toBe(newEvent.name);
 		expect(data.upcoming[1].priority).toBe(newEvent.priority);
 		expect(data.upcoming[1].location).toBe(newEvent.location);
-		expect(data.upcoming[1].start).toBe(newEvent.start?.toISO());
+		expect(data.upcoming[1].start).toBe('January 25, 2024');
 		expect(data.upcoming[1].tags).toEqual(newEvent.tags);
+	});
+
+	test('adds a new event with a timezone to the data file', async () => {
+		vi.stubEnv('DATA_FILE', 'timezone/data.yaml');
+		vol.fromJSON({
+			'./timezone/data.yaml': `upcoming:${exampleEventYaml}`,
+		});
+
+		const manager = await EventsManager.create();
+		await manager.addEvent(newEventWithTimezone);
+
+		const data = yamlParse(fs.readFileSync('./timezone/data.yaml', 'utf8').toString());
+
+		expect(data.upcoming[1].name).toBe(newEventWithTimezone.name);
+		expect(data.upcoming[1].priority).toBe(newEventWithTimezone.priority);
+		expect(data.upcoming[1].location).toBe(newEventWithTimezone.location);
+		expect(data.upcoming[1].start).toContain('7:47');
+		expect(data.upcoming[1].start).toContain('ET');
+	});
+
+	test('adds a new todo event to the data file', async () => {
+		vi.stubEnv('DATA_FILE', 'todo/data.yaml');
+		vol.fromJSON({
+			'./todo/data.yaml': `upcoming:${exampleEventYaml}`,
+		});
+
+		const manager = await EventsManager.create();
+		await manager.addEvent(newTodoEvent);
+
+		const data = yamlParse(fs.readFileSync('./todo/data.yaml', 'utf8').toString());
+
+		expect(data.upcoming[1].name).toBe(newTodoEvent.name);
+		expect(data.upcoming[1].priority).toBe(newTodoEvent.priority);
+		expect(data.upcoming[1].location).toBeNull();
+		expect(data.upcoming[1].tags).toEqual(newTodoEvent.tags);
+		expect(data.upcoming[1].start).toBeNull();
 	});
 });

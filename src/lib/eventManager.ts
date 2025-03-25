@@ -95,7 +95,23 @@ export class EventsManager {
 		const data = await dataSchema.validate(yamlParse(eventDataFileContent));
 		data.upcoming.push(event);
 
-		const yaml = yamlStringify(data);
+		const yaml = yamlStringify(data, (key, value) => {
+			if (key === 'start' || key === 'end') {
+				if (value === null) return null;
+
+				const dateTime = value as DateTime;
+				const hasTime = dateTime.hour !== 0 || dateTime.minute !== 0;
+				return dateTime.toLocaleString({
+					year: 'numeric',
+					month: 'long',
+					day: 'numeric',
+					hour: hasTime ? 'numeric' : undefined,
+					minute: hasTime ? '2-digit' : undefined,
+					timeZoneName: hasTime ? 'shortGeneric' : undefined,
+				});
+			}
+			return value;
+		});
 		return fsp.writeFile(this.dataFilename, yaml);
 	}
 
