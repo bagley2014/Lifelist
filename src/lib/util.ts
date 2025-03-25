@@ -34,7 +34,7 @@ interface DebounceConstructor {
 	(func: () => void, wait: number): DebouncedFunction;
 }
 
-interface DebouncedFunction {
+export interface DebouncedFunction {
 	(...args: unknown[]): Promise<unknown>;
 	cancel(): void;
 	doImmediately(...args: unknown[]): Promise<unknown>;

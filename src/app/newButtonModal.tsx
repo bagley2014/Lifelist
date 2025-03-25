@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 
+import LoadingIndicator from './loadingIndicator';
+
 interface NewButtonModalProps {
 	classNames: string;
 }
 
 const NewButtonModal = ({ classNames }: NewButtonModalProps) => {
+	const [isLoading, setIsLoading] = useState(false);
 	const [isOpen, setIsOpen] = useState(false);
 	const [content, setContent] = useState('');
 
 	const handleSubmit = async () => {
+		setIsLoading(true);
 		try {
 			await fetch('/api/new', {
 				method: 'POST',
@@ -22,6 +26,7 @@ const NewButtonModal = ({ classNames }: NewButtonModalProps) => {
 		} catch (error) {
 			console.error('Error submitting content:', error);
 		}
+		setIsLoading(false);
 	};
 
 	return (
@@ -52,9 +57,13 @@ const NewButtonModal = ({ classNames }: NewButtonModalProps) => {
 							>
 								Cancel
 							</button>
-							<button onClick={handleSubmit} className="px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700">
-								Submit
-							</button>
+							{isLoading ? (
+								<LoadingIndicator />
+							) : (
+								<button onClick={handleSubmit} className="px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700">
+									Submit
+								</button>
+							)}
 						</div>
 					</div>
 				</div>

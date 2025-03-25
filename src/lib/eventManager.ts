@@ -1,5 +1,5 @@
+import { DebouncedFunction, debounce, yamlStringifyReplacer } from './util';
 import { Event, Frequency, dataSchema } from './schemas';
-import { debounce, yamlStringifyReplacer } from './util';
 import { promises as fsp, watch } from 'fs';
 import { parse as yamlParse, stringify as yamlStringify } from 'yaml';
 
@@ -54,7 +54,7 @@ export class EventsManager {
 			manager.cachedResults = {};
 		};
 
-		const debouncedParse = debounce(() => {
+		manager.debouncedParse = debounce(() => {
 			manager.parsingWork = parseEvents();
 		}, 500);
 
@@ -63,7 +63,7 @@ export class EventsManager {
 			// Start watching the data file for changes after we first parse it
 			watch(manager.dataFilename, eventType => {
 				console.log(`Data file changed (${eventType})`);
-				if (eventType === 'change') debouncedParse();
+				if (eventType === 'change') manager.debouncedParse();
 			});
 		});
 		await manager.parsingWork;
@@ -96,7 +96,10 @@ export class EventsManager {
 		data.upcoming.push(event);
 
 		const yaml = yamlStringify(data, yamlStringifyReplacer);
-		return fsp.writeFile(this.dataFilename, yaml);
+		return fsp.writeFile(this.dataFilename, yaml).then(() => {
+			// Manually update the data, in case the file system watcher doesn't trigger
+			this.parsingWork = this.debouncedParse();
+		});
 	}
 
 	private groupAndCleanEvents(events: Event[]): [string, EventSummary[]][] {
@@ -206,8 +209,9 @@ export class EventsManager {
 		}
 	}
 
+	private debouncedParse!: DebouncedFunction;
 	private dataFilename: string;
 	private cachedResults: { [key: string]: [Event[], AsyncGenerator<Event, void, unknown>] } = {};
 	private parsedEvents: Event[] = [];
-	private parsingWork!: Promise<void>;
+	private parsingWork!: Promise<unknown>;
 }
