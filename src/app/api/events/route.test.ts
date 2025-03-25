@@ -5,6 +5,22 @@ import { GET } from './route';
 import { NextRequest } from 'next/server';
 
 describe('events route', () => {
+	// Test order matters for this test; it must be first. TODO: Change how the EventsManager is cached to fix this.
+	test('returns 500 on missing data file', async () => {
+		vi.stubEnv('DATA_FILE', 'missing/data.yaml');
+		const request: NextRequest = new NextRequest('https://example.com/api/events?count=1&timezone=America/Los_Angeles', {
+			method: 'GET',
+		});
+
+		const response = await GET(request);
+		expect(response.status).toBe(500);
+
+		const data = await response.text();
+		expect(data).toBe('Unknown error');
+
+		vi.unstubAllEnvs();
+	});
+
 	test('works with valid parameters', async () => {
 		const request: NextRequest = new NextRequest('https://example.com/api/events?count=1&timezone=America/Los_Angeles&date=2023-01-01T00:00:00.000-08:00', {
 			method: 'GET',
@@ -106,5 +122,7 @@ describe('events route', () => {
 
 		const data = await response.text();
 		expect(data).toBe('Unknown error');
+
+		vi.resetAllMocks();
 	});
 });

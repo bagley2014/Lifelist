@@ -8,7 +8,8 @@ const countSchema = number().required('`count` query parameter is required').min
 const timezoneSchema = string()
 	.required('`timezone` query parameter is required')
 	.matches(/^[a-zA-Z0-9\/_+-]+\/[a-zA-Z0-9\/_+-]+$/, '`timezone` must be a valid IANA timezone');
-const manager = EventsManager.create();
+
+let manager: EventsManager | undefined;
 
 export async function GET(request: NextRequest) {
 	let count;
@@ -16,6 +17,7 @@ export async function GET(request: NextRequest) {
 	let date;
 	const searchParams = request.nextUrl.searchParams;
 	try {
+		manager = manager ?? (await EventsManager.create());
 		count = countSchema.validateSync(searchParams.get('count'));
 		timezone = timezoneSchema.validateSync(searchParams.get('timezone'));
 		date = dateTimeSchema
@@ -34,5 +36,5 @@ export async function GET(request: NextRequest) {
 	}
 
 	// TODO: Add a timeout to keep the client from waiting forever
-	return Response.json(await (await manager).getEvents(date, count));
+	return Response.json(await manager.getEvents(date, count));
 }
