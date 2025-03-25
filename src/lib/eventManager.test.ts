@@ -100,6 +100,16 @@ const multiDayEventYaml = `
     end: "2023-01-03"
     tags: []
 `;
+const wellOrderedEventYaml = `
+  - name: Dragon*Con
+    priority: 10
+    location: Atlanta
+    start: August 27, 2025
+    end: September 1, 2025
+    frequency: once
+    tags:
+      - Convention
+`;
 
 describe('getEvents', () => {
 	test('fails if the data file is not found', async () => {
@@ -406,6 +416,23 @@ describe('addEvent', () => {
 		tags: [],
 	});
 
+	const newDisorganizedEvent = eventSchema.cast({
+		location: 'Atlanta',
+		name: 'Dragon*Con',
+		start: DateTime.fromObject({
+			year: 2025,
+			month: 8,
+			day: 27,
+		}),
+		priority: 10,
+		end: DateTime.fromObject({
+			year: 2025,
+			month: 9,
+			day: 1,
+		}),
+		tags: ['Convention'],
+	});
+
 	test('fails if the data file is not found', async () => {
 		vi.stubEnv('DATA_FILE', 'data.yaml');
 		await expect(EventsManager.create()).rejects.toThrow('Data file not found: data.yaml');
@@ -475,5 +502,19 @@ describe('addEvent', () => {
 		expect(data.upcoming[1].location).toBeNull();
 		expect(data.upcoming[1].tags).toEqual(newTodoEvent.tags);
 		expect(data.upcoming[1].start).toBeNull();
+	});
+
+	test('organizes the data file after adding an event', async () => {
+		vi.stubEnv('DATA_FILE', 'disorganized/data.yaml');
+		vol.fromJSON({
+			'./disorganized/data.yaml': `upcoming:${exampleEventYaml}`,
+		});
+
+		const manager = await EventsManager.create();
+		await manager.addEvent(newDisorganizedEvent);
+
+		const text = fs.readFileSync('./disorganized/data.yaml', 'utf8').toString();
+
+		expect(text).toContain(wellOrderedEventYaml);
 	});
 });

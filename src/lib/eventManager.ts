@@ -1,9 +1,9 @@
 import { Event, Frequency, dataSchema } from './schemas';
+import { debounce, yamlStringifyReplacer } from './util';
 import { promises as fsp, watch } from 'fs';
 import { parse as yamlParse, stringify as yamlStringify } from 'yaml';
 
 import { DateTime } from 'luxon';
-import { debounce } from './util';
 import { inPlaceSort } from 'fast-sort';
 
 export interface EventSummary {
@@ -95,23 +95,7 @@ export class EventsManager {
 		const data = await dataSchema.validate(yamlParse(eventDataFileContent));
 		data.upcoming.push(event);
 
-		const yaml = yamlStringify(data, (key, value) => {
-			if (key === 'start' || key === 'end') {
-				if (value === null) return null;
-
-				const dateTime = value as DateTime;
-				const hasTime = dateTime.hour !== 0 || dateTime.minute !== 0;
-				return dateTime.toLocaleString({
-					year: 'numeric',
-					month: 'long',
-					day: 'numeric',
-					hour: hasTime ? 'numeric' : undefined,
-					minute: hasTime ? '2-digit' : undefined,
-					timeZoneName: hasTime ? 'shortGeneric' : undefined,
-				});
-			}
-			return value;
-		});
+		const yaml = yamlStringify(data, yamlStringifyReplacer);
 		return fsp.writeFile(this.dataFilename, yaml);
 	}
 

@@ -1,5 +1,6 @@
-// Original code: https://gist.github.com/carlhannes/4b318c28e95f635191bffb656b9a2cfe
+import { DateTime } from 'luxon';
 
+// Original debounce code: https://gist.github.com/carlhannes/4b318c28e95f635191bffb656b9a2cfe
 // ES6 Async version of the "classic" JavaScript Debounce function.
 // Works both with and without promises, so you can replace your existing
 // debounce helper function with this one (and it will behave the same).
@@ -66,3 +67,32 @@ export const debounce: DebounceConstructor = (func: (...args: unknown[]) => void
 
 	return debouncedFn;
 };
+
+const propertyOrderArray = ['name', 'priority', 'location', 'start', 'end', 'frequency', 'tags', 'old', 'upcoming'];
+
+export function yamlStringifyReplacer(key: string, value: unknown) {
+	// If the key is a known DateTime property, format it in a human readable way
+	if (key === 'start' || key === 'end') {
+		if (value === null || value === undefined) return value;
+
+		const dateTime = value as DateTime;
+		const hasTime = dateTime.hour !== 0 || dateTime.minute !== 0;
+		return dateTime.toLocaleString({
+			year: 'numeric',
+			month: 'long',
+			day: 'numeric',
+			hour: hasTime ? 'numeric' : undefined,
+			minute: hasTime ? '2-digit' : undefined,
+			timeZoneName: hasTime ? 'shortGeneric' : undefined,
+		});
+	}
+
+	// If the value is an object in one of our arrays, reorder the properties in a clean, consistent way
+	if (value instanceof Object && value !== null && !Array.isArray(value)) {
+		return propertyOrderArray.reduce((obj: Record<string, unknown>, prop) => {
+			obj[prop] = (value as Record<string, unknown>)[prop];
+			return obj;
+		}, {});
+	}
+	return value;
+}
