@@ -19,15 +19,19 @@ chrono.strict.refiners.push({
 	},
 });
 
-const frequencyKind = z
-	.literal('once')
-	.or(z.literal('daily'))
-	.or(z.literal('weekly'))
-	.or(z.literal('biweekly'))
-	.or(z.literal('weekdays'))
-	.or(z.literal('monthly'))
-	.or(z.literal('annually'))
-	.or(z.literal('floating'))
+const dayValues = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
+const monthValues = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'] as const;
+const weekValues = ['first', 'second', 'third', 'fourth', 'last'] as const;
+const frequencyValues = ['once', 'daily', 'weekly', 'biweekly', 'weekdays', 'monthly', 'annually', 'floating'] as const;
+const frequencyKindEnum = z.enum(frequencyValues);
+const frequencySchema = z
+	.union([
+		frequencyKindEnum,
+		z.discriminatedUnion('kind', [
+			z.object({ kind: frequencyKindEnum.exclude(['floating']) }),
+			z.object({ kind: frequencyKindEnum.extract(['floating']), weekday: z.enum(dayValues), week: z.enum(weekValues), month: z.enum(monthValues) }),
+		]),
+	])
 	.default('once');
 
 export const dateTimeSchema = z
@@ -78,7 +82,7 @@ export const eventSchema = z
 		location: z.string().nullish().default(null),
 		start: dateTimeSchema.nullable().default(null),
 		end: dateTimeSchema.nullish(),
-		frequency: frequencyKind,
+		frequency: frequencySchema,
 		tags: z.string().array().default([]),
 	})
 	.strict()

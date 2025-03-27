@@ -139,7 +139,7 @@ describe('eventSchema', () => {
 		test('on an event with an invalid frequency', () => {
 			expect(() => {
 				eventSchema.parse({ ...validEvent, frequency: 'invalid' });
-			}).toThrow('Invalid literal value');
+			}).toThrow('Invalid enum value');
 		});
 
 		test('on an event with an invalid start date', () => {
