@@ -58,7 +58,7 @@ describe('events route', () => {
 		expect(response.status).toBe(400);
 
 		const data = await response.text();
-		expect(data).toBe('this is not a valid date');
+		expect(data).toContain('Invalid DateTime is not a valid date');
 	});
 
 	test('returns 400 when timezone is invalid', async () => {
@@ -70,7 +70,7 @@ describe('events route', () => {
 		expect(response.status).toBe(400);
 
 		const data = await response.text();
-		expect(data).toBe('`timezone` must be a valid IANA timezone');
+		expect(data).toContain('`timezone` must be a valid IANA timezone');
 	});
 
 	test('returns 400 when timezone is missing', async () => {
@@ -82,7 +82,7 @@ describe('events route', () => {
 		expect(response.status).toBe(400);
 
 		const data = await response.text();
-		expect(data).toBe('`timezone` query parameter is required');
+		expect(data).toContain('Expected string, received null');
 	});
 
 	test('returns 400 when count is invalid', async () => {
@@ -94,7 +94,7 @@ describe('events route', () => {
 		expect(response.status).toBe(400);
 
 		const data = await response.text();
-		expect(data).toBe('`count` must not be negative');
+		expect(data).toContain('`count` must not be negative');
 	});
 
 	test('returns 400 when count is missing', async () => {
@@ -106,7 +106,7 @@ describe('events route', () => {
 		expect(response.status).toBe(400);
 
 		const data = await response.text();
-		expect(data).toBe('`count` query parameter is required');
+		expect(data).toContain('`count` must not be negative');
 	});
 
 	test('returns 500 on unknown error', async () => {

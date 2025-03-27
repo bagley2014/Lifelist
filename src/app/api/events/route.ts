@@ -1,13 +1,11 @@
 import { type NextRequest } from 'next/server';
-import { number, ValidationError, string } from 'yup';
+import z, { ZodError } from 'zod';
 import { EventsManager } from '@/lib/eventManager';
 import { dateTimeSchema } from '@/lib/schemas';
 import { DateTime } from 'luxon';
 
-const countSchema = number().required('`count` query parameter is required').min(0, '`count` must not be negative');
-const timezoneSchema = string()
-	.required('`timezone` query parameter is required')
-	.matches(/^[a-zA-Z0-9\/_+-]+\/[a-zA-Z0-9\/_+-]+$/, '`timezone` must be a valid IANA timezone');
+const countSchema = z.coerce.number().min(0, '`count` must not be negative');
+const timezoneSchema = z.string().regex(/^[a-zA-Z0-9\/_+-]+\/[a-zA-Z0-9\/_+-]+$/, '`timezone` must be a valid IANA timezone');
 
 let manager: EventsManager | undefined;
 
@@ -18,17 +16,16 @@ export async function GET(request: NextRequest) {
 	const searchParams = request.nextUrl.searchParams;
 	try {
 		manager = manager ?? (await EventsManager.create());
-		count = countSchema.validateSync(searchParams.get('count'));
-		timezone = timezoneSchema.validateSync(searchParams.get('timezone'));
+		count = countSchema.parse(searchParams.get('count') ?? -1);
+		timezone = timezoneSchema.parse(searchParams.get('timezone'));
 		date = dateTimeSchema
-			.transform((value, _originalValue, context) => {
-				if (value && context.isType(value)) return value;
+			.transform(value => {
+				if (value) return value;
 				return DateTime.now().setZone(timezone);
 			})
-			.defined()
-			.validateSync(searchParams.get('date'));
+			.parse(searchParams.get('date'));
 	} catch (error) {
-		if (error instanceof ValidationError || error instanceof TypeError) return new Response(error.message, { status: 400 });
+		if (error instanceof ZodError) return new Response(error.message, { status: 400 });
 		else {
 			console.error(error);
 			return new Response('Unknown error', { status: 500 });

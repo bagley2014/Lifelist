@@ -26,5 +26,5 @@ export async function englishToEvent(englishInput: string): Promise<Event | null
 		parser: LLM.parsers.json,
 	});
 
-	return eventSchema.validate(json).catch(() => null);
+	return eventSchema.parseAsync(json).catch(() => null);
 }

@@ -373,7 +373,7 @@ describe('getEvents', () => {
 });
 
 describe('addEvent', () => {
-	const newEvent = eventSchema.cast({
+	const newEvent = eventSchema.parse({
 		name: 'New Event',
 		priority: 3,
 		location: 'New Location',
@@ -381,7 +381,7 @@ describe('addEvent', () => {
 		tags: ['New Tag'],
 	});
 
-	const newEventWithTimezone = eventSchema.cast({
+	const newEventWithTimezone = eventSchema.parse({
 		name: 'New East Coast Event',
 		priority: 3,
 		location: 'Florida',
@@ -398,13 +398,13 @@ describe('addEvent', () => {
 		tags: [],
 	});
 
-	const newTodoEvent = eventSchema.cast({
+	const newTodoEvent = eventSchema.parse({
 		name: 'New Todo Event',
 		priority: 10,
 		tags: [],
 	});
 
-	const newDisorganizedEvent = eventSchema.cast({
+	const newDisorganizedEvent = eventSchema.parse({
 		location: 'Atlanta',
 		name: 'Dragon*Con',
 		start: DateTime.fromObject({

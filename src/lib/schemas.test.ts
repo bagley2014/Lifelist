@@ -1,4 +1,4 @@
-import { Frequency, dateTimeSchema, eventSchema } from './schemas';
+import { dateTimeSchema, eventSchema } from './schemas';
 import { describe, expect, test } from 'vitest';
 
 import { DateTime } from 'luxon';
@@ -6,66 +6,72 @@ import { DateTime } from 'luxon';
 describe('dateTimeSchema', () => {
 	test("doesn't modify existing DateTime objects", () => {
 		const date = new Date();
-		const dateTime = dateTimeSchema.required().validateSync(DateTime.fromJSDate(date));
+		const dateTime = dateTimeSchema.parse(DateTime.fromJSDate(date));
+		expect(dateTime).toBeTruthy();
 		expect(dateTime).toBeInstanceOf(DateTime);
-		expect(dateTime.isValid).toBe(true);
-		expect(dateTime.toJSDate()).toEqual(date);
+		expect(dateTime!.isValid).toBe(true);
+		expect(dateTime!.toJSDate()).toEqual(date);
 		expect(dateTime).toStrictEqual(DateTime.fromJSDate(date));
 	});
 
 	describe('parses dates', () => {
 		test('with the year first', () => {
-			const result = dateTimeSchema.required().validateSync('1996-01-25');
-			expect(result.isValid).toBe(true);
-			expect(result.day).toEqual(25);
-			expect(result.month).toEqual(1);
-			expect(result.year).toEqual(1996);
-			expect(result.hour).toEqual(0);
-			expect(result.minute).toEqual(0);
-			expect(result.second).toEqual(0);
+			const result = dateTimeSchema.parse('1996-01-25');
+			expect(result).toBeTruthy();
+			expect(result!.isValid).toBe(true);
+			expect(result!.day).toEqual(25);
+			expect(result!.month).toEqual(1);
+			expect(result!.year).toEqual(1996);
+			expect(result!.hour).toEqual(0);
+			expect(result!.minute).toEqual(0);
+			expect(result!.second).toEqual(0);
 		});
 		test('in the American order', () => {
-			const result = dateTimeSchema.required().validateSync('6/13/2014');
-			expect(result.isValid).toBe(true);
-			expect(result.day).toEqual(13);
-			expect(result.month).toEqual(6);
-			expect(result.year).toEqual(2014);
-			expect(result.hour).toEqual(0);
-			expect(result.minute).toEqual(0);
-			expect(result.second).toEqual(0);
+			const result = dateTimeSchema.parse('6/13/2014');
+			expect(result).toBeTruthy();
+			expect(result!.isValid).toBe(true);
+			expect(result!.day).toEqual(13);
+			expect(result!.month).toEqual(6);
+			expect(result!.year).toEqual(2014);
+			expect(result!.hour).toEqual(0);
+			expect(result!.minute).toEqual(0);
+			expect(result!.second).toEqual(0);
 		});
 	});
 	describe('parses times', () => {
 		test('with an informal format', () => {
-			const result = dateTimeSchema.required().validateSync('7pm PT');
-			expect(result.isValid).toBe(true);
-			expect(result.hour).toEqual(19);
-			expect(result.minute).toEqual(0);
-			expect(result.second).toEqual(0);
+			const result = dateTimeSchema.parse('7pm PT');
+			expect(result).toBeTruthy();
+			expect(result!.isValid).toBe(true);
+			expect(result!.hour).toEqual(19);
+			expect(result!.minute).toEqual(0);
+			expect(result!.second).toEqual(0);
 
-			const timezone = result.zone;
+			const timezone = result!.zone;
 			expect(timezone.offsetName(1740043708614, { format: 'short', locale: 'en-US' })).toEqual('PST');
 			expect(timezone.offsetName(1742459157854, { format: 'short', locale: 'en-US' })).toEqual('PDT');
 		});
 		test('with a formal format', () => {
-			const result = dateTimeSchema.required().validateSync('14:30:00 CT');
-			expect(result.isValid).toBe(true);
-			expect(result.hour).toEqual(14);
-			expect(result.minute).toEqual(30);
-			expect(result.second).toEqual(0);
+			const result = dateTimeSchema.parse('14:30:00 CT');
+			expect(result).toBeTruthy();
+			expect(result!.isValid).toBe(true);
+			expect(result!.hour).toEqual(14);
+			expect(result!.minute).toEqual(30);
+			expect(result!.second).toEqual(0);
 
-			const timezone = result.zone;
+			const timezone = result!.zone;
 			expect(timezone.offsetName(1740043708614, { format: 'short', locale: 'en-US' })).toEqual('CST');
 			expect(timezone.offsetName(1742459157854, { format: 'short', locale: 'en-US' })).toEqual('CDT');
 		});
 		test('with a foreign timezone', () => {
-			const result = dateTimeSchema.required().validateSync('5:00 AM JST');
-			expect(result.isValid).toBe(true);
-			expect(result.hour).toEqual(5);
-			expect(result.minute).toEqual(0);
-			expect(result.second).toEqual(0);
+			const result = dateTimeSchema.parse('5:00 AM JST');
+			expect(result).toBeTruthy();
+			expect(result!.isValid).toBe(true);
+			expect(result!.hour).toEqual(5);
+			expect(result!.minute).toEqual(0);
+			expect(result!.second).toEqual(0);
 
-			const timezone = result.zone;
+			const timezone = result!.zone;
 			expect(timezone.offsetName(1740043708614, { format: 'short', locale: 'en-US' })).toEqual('UTC+9');
 		});
 	});
@@ -73,7 +79,7 @@ describe('dateTimeSchema', () => {
 	describe('fails input', () => {
 		test('that is very vague', () => {
 			expect(() => {
-				dateTimeSchema.required().validateSync('12');
+				dateTimeSchema.parse('12');
 			}).toThrow();
 		});
 	});
@@ -91,21 +97,21 @@ describe('eventSchema', () => {
 
 	describe('passes', () => {
 		test('on a valid event', () => {
-			const result = eventSchema.validateSync(validEvent);
+			const result = eventSchema.parse(validEvent);
 			expect(result).toEqual({
 				...validEvent,
-				frequency: Frequency.Once,
-				start: dateTimeSchema.validateSync(validEvent.start),
-				end: dateTimeSchema.validateSync(validEvent.end),
+				frequency: 'once',
+				start: dateTimeSchema.parse(validEvent.start),
+				end: dateTimeSchema.parse(validEvent.end),
 			});
 		});
 
 		test('on an event with no end time', () => {
-			const result = eventSchema.validateSync({ ...validEvent, end: undefined });
+			const result = eventSchema.parse({ ...validEvent, end: undefined });
 			expect(result).toEqual({
 				...validEvent,
-				frequency: Frequency.Once,
-				start: dateTimeSchema.validateSync(validEvent.start),
+				frequency: 'once',
+				start: dateTimeSchema.parse(validEvent.start),
 				end: undefined,
 			});
 		});
@@ -114,50 +120,50 @@ describe('eventSchema', () => {
 	describe('fails', () => {
 		test('on an event with missing required fields', () => {
 			expect(() => {
-				eventSchema.validateSync({});
-			}).toThrow();
+				eventSchema.parse({});
+			}).toThrow('invalid_type');
 		});
 
 		test('on an event with an invalid name', () => {
 			expect(() => {
-				eventSchema.validateSync({ ...validEvent, name: '' });
-			}).toThrow();
+				eventSchema.parse({ ...validEvent, name: '' });
+			}).toThrow('String must contain at least 1 character(s)');
 		});
 
 		test('on an event with an invalid priority', () => {
 			expect(() => {
-				eventSchema.validateSync({ ...validEvent, priority: -1 });
-			}).toThrow();
+				eventSchema.parse({ ...validEvent, priority: -1 });
+			}).toThrow('Number must be greater than or equal to 0');
 		});
 
 		test('on an event with an invalid frequency', () => {
 			expect(() => {
-				eventSchema.validateSync({ ...validEvent, frequency: 'invalid' });
-			}).toThrow();
+				eventSchema.parse({ ...validEvent, frequency: 'invalid' });
+			}).toThrow('Invalid literal value');
 		});
 
 		test('on an event with an invalid start date', () => {
 			expect(() => {
-				eventSchema.validateSync({ ...validEvent, start: 'invalid' });
-			}).toThrow();
+				eventSchema.parse({ ...validEvent, start: 'invalid' });
+			}).toThrow('Invalid DateTime is not a valid date');
 		});
 
 		test('on an event with an invalid end date', () => {
 			expect(() => {
-				eventSchema.validateSync({ ...validEvent, end: 'invalid' });
-			}).toThrow();
+				eventSchema.parse({ ...validEvent, end: 'invalid' });
+			}).toThrow('Invalid DateTime is not a valid date');
 		});
 
 		test('on an event with an end date before the start date', () => {
 			expect(() => {
-				eventSchema.validateSync({ ...validEvent, end: '2021-01-01' });
-			}).toThrow();
+				eventSchema.parse({ ...validEvent, end: '2021-01-01' });
+			}).toThrow('start must be before end');
 		});
 
 		test('on an event with an end date but no start date', () => {
 			expect(() => {
-				eventSchema.validateSync({ ...validEvent, start: null });
-			}).toThrow();
+				eventSchema.parse({ ...validEvent, start: null });
+			}).toThrow('end cannot be defined if start is null');
 		});
 	});
 });

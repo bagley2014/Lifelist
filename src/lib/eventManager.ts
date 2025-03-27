@@ -1,5 +1,5 @@
 import { DebouncedFunction, debounce, yamlStringifyReplacer } from './util';
-import { Event, Frequency, dataSchema } from './schemas';
+import { Event, dataSchema } from './schemas';
 import { parse as yamlParse, stringify as yamlStringify } from 'yaml';
 
 import { DateTime } from 'luxon';
@@ -43,7 +43,7 @@ export class EventsManager {
 				});
 
 			const events = await dataSchema
-				.validate(yamlParse(eventDataFileContent))
+				.parseAsync(yamlParse(eventDataFileContent))
 				.catch(error => {
 					throw new Error(`Data file is not valid: ${error}`);
 				})
@@ -93,7 +93,7 @@ export class EventsManager {
 				throw new Error(`Data file not found: ${this.dataFilename}`);
 			});
 
-		const data = await dataSchema.validate(yamlParse(eventDataFileContent));
+		const data = await dataSchema.parseAsync(yamlParse(eventDataFileContent));
 		data.upcoming.push(event);
 
 		const yaml = yamlStringify(data, yamlStringifyReplacer);
@@ -169,15 +169,15 @@ export class EventsManager {
 			const event = events.shift() as Event;
 
 			// Add a new event to the list if this event is repeating
-			if (event.frequency !== Frequency.Once) {
+			if (event.frequency !== 'once') {
 				// The schema ensures that any event with a frequency other than "once" has a start date
-				if (event.frequency === Frequency.Weekly) {
+				if (event.frequency === 'weekly') {
 					const nextEvent = { ...event, start: event.start!.plus({ weeks: 1 }), end: event.end ? event.end.plus({ weeks: 1 }) : event.end };
 					events.push(nextEvent);
-				} else if (event.frequency === Frequency.Biweekly) {
+				} else if (event.frequency === 'biweekly') {
 					const nextEvent = { ...event, start: event.start!.plus({ weeks: 2 }), end: event.end ? event.end.plus({ weeks: 2 }) : event.end };
 					events.push(nextEvent);
-				} else if (event.frequency === Frequency.Weekdays) {
+				} else if (event.frequency === 'weekdays') {
 					let daysToAdd = 1;
 					let nextDay = event.start!.plus({ days: daysToAdd });
 					while (nextDay.isWeekend) {
