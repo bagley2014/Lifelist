@@ -156,7 +156,6 @@ describe('getEvents', () => {
 		const mockedDebouncedParse = vi.fn();
 		vi.spyOn(chokidar, 'watch').mockImplementation((_, __) => {
 			return fs.watch('./data.yaml', {}, eventType => {
-				console.log(`Data file changed (${eventType})`);
 				if (eventType === 'change') mockedDebouncedParse();
 			}) as unknown as FSWatcher;
 		});
@@ -449,7 +448,6 @@ describe('addEvent', () => {
 
 		const data = yamlParse(fs.readFileSync('./unfinished/data.yaml', 'utf8').toString());
 
-		console.log(data);
 		expect(data.upcoming[1].name).toBe(newEvent.name);
 		expect(data.upcoming[1].priority).toBe(newEvent.priority);
 		expect(data.upcoming[1].location).toBe(newEvent.location);
