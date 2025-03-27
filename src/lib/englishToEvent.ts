@@ -14,6 +14,7 @@ The event may optionally have the following properties:
 - start: a string that is a valid date (time optional) that won't be included on TODO items
 - end: a string that is a valid date (time optional) that won't be included on events without a start date
 - frequency: one of the following strings: "once", "daily", "weekly", "biweekly", "monthly", "yearly"
+- tags: an array of strings that describe the event
 `);
 	return llm;
 }
