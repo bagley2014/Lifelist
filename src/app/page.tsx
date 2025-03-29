@@ -22,6 +22,11 @@ enum TagState {
 	PROHIBITED,
 }
 
+enum TagOperatorKind {
+	AND,
+	OR,
+}
+
 const EventCalendar = () => {
 	const [fetchCount, setFetchCount] = useState(100);
 	const [isLoading, setLoading] = useState(true);
@@ -32,6 +37,8 @@ const EventCalendar = () => {
 	const [maxPriority, setMaxPriority] = useLocalStorageState('maxPriority', { defaultValue: 10 });
 	const [availableTags, setAvailableTags] = useState<string[]>([]);
 	const [tagStates, setTagStates] = useState<{ [tag: string]: TagState }>({});
+	const [requiredTagOperator, setRequiredTagOperator] = useLocalStorageState('requiredTagOperator', { defaultValue: TagOperatorKind.AND });
+	const [prohibitedTagOperator, setProhibitedTagOperator] = useLocalStorageState('prohibitedTagOperator', { defaultValue: TagOperatorKind.OR });
 
 	const START_DATE = useMemo(() => new Date(), []);
 
@@ -83,13 +90,19 @@ const EventCalendar = () => {
 				// Check if event priority is within range
 				const isPriorityInRange = event.priority >= minPriority && event.priority <= maxPriority;
 
-				// Check if event has all required tags (if any are specified)
-				const hasAllRequiredTags = requiredTags.length === 0 || requiredTags.every(tag => event.tags.includes(tag));
+				// Check if event has required tags (if any are specified)
+				const hasRequiredTags =
+					requiredTags.length === 0 || requiredTagOperator == TagOperatorKind.AND
+						? requiredTags.every(tag => event.tags.includes(tag))
+						: requiredTags.some(tag => event.tags.includes(tag));
 
-				// Check if event has no prohibited tags
-				const hasNoProhibitedTags = prohibitedTags.every(tag => !event.tags.includes(tag));
+				// Check if event has prohibited tags
+				const hasProhibitedTags =
+					prohibitedTags.length !== 0 && prohibitedTagOperator == TagOperatorKind.AND
+						? prohibitedTags.every(tag => event.tags.includes(tag))
+						: prohibitedTags.some(tag => event.tags.includes(tag));
 
-				return isPriorityInRange && hasAllRequiredTags && hasNoProhibitedTags;
+				return isPriorityInRange && hasRequiredTags && !hasProhibitedTags;
 			});
 
 			return [date, filteredEvents];
@@ -129,7 +142,7 @@ const EventCalendar = () => {
 		}
 
 		setFilteredData(results.filter(x => showEmptyDates || x[1].length));
-	}, [START_DATE, eventData, minPriority, maxPriority, tagStates, showEmptyDates]);
+	}, [START_DATE, eventData, minPriority, maxPriority, tagStates, showEmptyDates, requiredTagOperator, prohibitedTagOperator]);
 
 	// Toggle tag state
 	const cycleTagState = (tag: string) => {
@@ -176,6 +189,7 @@ const EventCalendar = () => {
 	};
 
 	const whiteBg = 'bg-white dark:bg-gray-800';
+	const tagButtonStyle = 'rounded-full text-sm dark:text-gray-300';
 
 	return (
 		<div className={classNames('max-w-4xl mx-auto bg-gray-200 dark:bg-gray-900 min-h-screen')}>
@@ -207,18 +221,32 @@ const EventCalendar = () => {
 						/>
 					</div>
 
-					<label className={classNames('inline-flex items-center')}>
+					<label className={classNames('inline-flex items-center self-start')}>
 						<input type="checkbox" checked={showEmptyDates} onChange={() => setShowEmptyDates(!showEmptyDates)} className={classNames('mr-1')} />
-						<span className={`text-sm py-1 dark:text-gray-300`}>Show Empty Days</span>
+						<span className={classNames('text-sm py-1 dark:text-gray-300')}>Show Empty Days</span>
 					</label>
 				</div>
 
 				{/* Tag Filters */}
 				<div>
-					<label className={classNames('block text-sm font-medium mb-2 dark:text-gray-300')}>Filter by Tags:</label>
+					<div className={classNames('flex items-center justify-items-start gap-2 mb-2')}>
+						<label className={classNames('text-sm font-medium dark:text-gray-300')}>Filter by Tags:</label>
+						<button
+							onClick={() => setRequiredTagOperator(x => (x == TagOperatorKind.AND ? TagOperatorKind.OR : TagOperatorKind.AND))}
+							className={classNames('px-1', tagButtonStyle, getTagStyle(TagState.REQUIRED))}
+						>
+							{requiredTagOperator == TagOperatorKind.AND ? 'EVERY' : 'ANY'}
+						</button>
+						<button
+							onClick={() => setProhibitedTagOperator(x => (x == TagOperatorKind.AND ? TagOperatorKind.OR : TagOperatorKind.AND))}
+							className={classNames('px-1', tagButtonStyle, getTagStyle(TagState.PROHIBITED))}
+						>
+							{prohibitedTagOperator == TagOperatorKind.AND ? 'EVERY' : 'ANY'}
+						</button>
+					</div>
 					<div className={classNames('flex flex-wrap gap-2')}>
 						{availableTags.map(tag => (
-							<button key={tag} onClick={() => cycleTagState(tag)} className={`px-3 py-1 rounded-full text-sm dark:text-gray-300 ${getTagStyle(tagStates[tag])}`}>
+							<button key={tag} onClick={() => cycleTagState(tag)} className={classNames('px-3 py-1', tagButtonStyle, getTagStyle(tagStates[tag]))}>
 								{tag}
 							</button>
 						))}
