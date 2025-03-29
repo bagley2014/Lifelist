@@ -228,7 +228,7 @@ const EventCalendar = () => {
 			{/* Event List */}
 			<div className={classNames('space-y-1')}>
 				{filteredData.map(([date, events]) => (
-					<div key={date} className={classNames(whiteBg, 'px-4 dark:text-gray-200')}>
+					<div key={date} className={classNames(whiteBg, 'px-4 dark:text-gray-200 rounded')}>
 						<h2 className={classNames('text-lg font-semibold border-b border-gray-300 dark:border-gray-700 dark:text-white')}>{date}</h2>
 
 						{events.length === 0 ? (
