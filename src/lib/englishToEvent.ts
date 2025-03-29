@@ -11,10 +11,11 @@ The event MUST have the following properties:
 - priority: a number between 0 and 10, inclusive
 The event may optionally have the following properties:
 - location: a string that is not empty
-- start: a string that is a valid date (time optional) that won't be included on TODO items
-- end: a string that is a valid date (time optional) that won't be included on events without a start date
-- frequency: one of the following strings: "once", "daily", "weekly", "biweekly", "monthly", "yearly"
-- tags: an array of strings that describe the event
+- start: a date that won't be included on TODO items
+- end: a date that won't be included on events without a start date
+- frequency: one of the following strings: "once", "daily", "weekly", "biweekly", "monthly", "annually"
+- tags: an array of title-cased strings that describe the event
+The dates should be formatted like \`April 3, 2025 at 1:30 PM CT\` if present; the time is optional, but the timezone is required if the time is present.
 `);
 	return llm;
 }
