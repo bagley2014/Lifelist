@@ -27,10 +27,17 @@ function sortEvents(events: Event[]): void {
 }
 
 export class EventsManager {
+	// We don't want more than one instance watching the same data file
+	static instanceCache: Record<string, EventsManager> = {};
+
 	static async create() {
 		const manager = new EventsManager();
+		if (EventsManager.instanceCache[manager.dataFilename]) {
+			return EventsManager.instanceCache[manager.dataFilename];
+		}
 
 		console.log(`Initializing new ${EventsManager.name} using data file: ${manager.dataFilename}`);
+		EventsManager.instanceCache[manager.dataFilename] = manager;
 
 		const parseEvents = async (): Promise<void> => {
 			console.log('Parsing events data file');
@@ -57,7 +64,7 @@ export class EventsManager {
 
 		manager.debouncedParse = debounce(() => {
 			manager.parsingWork = parseEvents();
-		}, 500);
+		}, 800);
 
 		// TODO: Maybe make this first call lazy
 		manager.parsingWork = parseEvents().then(_ => {
