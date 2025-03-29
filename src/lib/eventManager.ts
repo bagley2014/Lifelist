@@ -105,25 +105,29 @@ export class EventsManager {
 
 	private groupAndCleanEvents(events: Event[]): [string, EventSummary[]][] {
 		// The client prints the times as is, so formatting is left to the server
-		const getTime = (date: DateTime) =>
-			date.toLocaleString({
-				hour: 'numeric',
-				minute: 'numeric',
-				hour12: true,
-				timeZoneName: 'shortGeneric',
-			});
+		const getTime = (date: DateTime, shortened: boolean = false) =>
+			date
+				.toLocaleString({
+					hour: 'numeric',
+					minute: date.minute ? 'numeric' : undefined,
+					hour12: true,
+					timeZoneName: shortened ? undefined : 'shortGeneric',
+				})
+				.replace(/ (AM|PM)/, (_, p1) => p1.toLowerCase());
 
 		const groups: { [key: string]: EventSummary[] } = {};
 
 		for (const event of events) {
 			const key = event.start ? toDateString(event.start) : 'TODO';
 			if (!groups[key]) groups[key] = [];
+			const hasStart = event.start && (event.start.hour !== 0 || event.start.minute !== 0);
+			const hasEnd = event.end && (event.end.hour !== 0 || event.end.minute !== 0);
 			groups[key].push({
 				name: event.name,
 				priority: event.priority,
 				location: event.location,
-				startTime: event.start && (event.start.hour !== 0 || event.start.minute !== 0) ? getTime(event.start!) : undefined,
-				endTime: event.end && (event.end.hour !== 0 || event.end.minute !== 0) ? getTime(event.end!) : undefined,
+				startTime: hasStart ? (hasEnd ? getTime(event.start!, true) : getTime(event.start!)) : undefined,
+				endTime: hasEnd ? getTime(event.end!) : undefined,
 				tags: event.tags,
 			});
 		}

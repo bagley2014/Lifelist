@@ -13,6 +13,7 @@
 		"@themaximalist/llm.js": "^0.8.0",
 		"chokidar": "^4.0.3",
 		"chrono-node": "^2.7.8",
+		"classnames": "^2.5.1",
 		"fast-sort": "^3.4.1",
 		"ldrs": "^1.1.2",
 		"luxon": "^3.5.0",

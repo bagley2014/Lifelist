@@ -10,6 +10,7 @@ import { IoLogoGithub } from 'react-icons/io';
 import LoadingIndicator from './loadingIndicator';
 import NewButtonModal from './newButtonModal';
 import RangeSlider from 'react-range-slider-input';
+import classNames from 'classnames';
 
 type DateEntry = [string, EventSummary[]];
 
@@ -157,6 +158,15 @@ const EventCalendar = () => {
 		return baseFontSize + (priority / 10) * maxIncrease;
 	};
 
+	const getStyle = (priority: number, maxFontSize: number = 18) => {
+		const fontSize = getFontSize(priority, maxFontSize);
+		const margin = (getFontSize(priority) - fontSize) * 1.5;
+		return {
+			fontSize: `${fontSize}px`,
+			margin: `${margin / 2}px 0`,
+		};
+	};
+
 	// Format time function
 	const formatTimeRange = (startTime: string | undefined, endTime: string | undefined) => {
 		if (!startTime) return '';
@@ -164,24 +174,26 @@ const EventCalendar = () => {
 		return `${startTime} - ${endTime}`;
 	};
 
+	const whiteBg = 'bg-white dark:bg-gray-800';
+
 	return (
-		<div className="max-w-4xl mx-auto bg-gray-50 dark:bg-gray-900 min-h-screen">
+		<div className={classNames('max-w-4xl mx-auto bg-gray-200 dark:bg-gray-900 min-h-screen')}>
 			{/* Sticky Header with Filters */}
-			<div className="sticky top-0 bg-white dark:bg-gray-800 shadow-md p-4 z-10">
+			<div className={classNames(whiteBg, 'sticky top-0 shadow-md p-4 z-10 mb-1')}>
 				<NewButtonModal classNames="absolute right-4" />
-				<IoLogoGithub className="absolute left-4" size={28} cursor={'pointer'} onClick={() => window.open('https://github.com/bagley2014/Lifelist')} />
-				<DarkModeToggle className="absolute left-12 cursor-pointer" />
+				<IoLogoGithub className={classNames('absolute left-4')} size={28} cursor={'pointer'} onClick={() => window.open('https://github.com/bagley2014/Lifelist')} />
+				<DarkModeToggle className={classNames('absolute left-12 cursor-pointer')} />
 
-				<h1 className="text-2xl font-bold mb-4 text-center dark:text-white">Lifelist</h1>
+				<h1 className={classNames('text-2xl font-bold mb-4 text-center dark:text-white')}>Lifelist</h1>
 
-				<div className="flex w-full gap-2">
+				<div className={classNames('flex w-full gap-2')}>
 					{/* Priority Range Slider */}
-					<div className="flex-grow mb-4">
-						<label className="block text-sm font-medium mb-2 dark:text-gray-300">
+					<div className={classNames('flex-grow mb-4')}>
+						<label className={classNames('block text-sm font-medium mb-2 dark:text-gray-300')}>
 							Priority Range: {minPriority} - {maxPriority}
 						</label>
 						<RangeSlider
-							className="flex-shrink-0 items-center"
+							className={classNames('flex-shrink-0 items-center')}
 							min={0}
 							max={10}
 							step={0.1}
@@ -194,16 +206,16 @@ const EventCalendar = () => {
 						/>
 					</div>
 
-					<label className="inline-flex items-center">
-						<input type="checkbox" checked={showEmptyDates} onChange={() => setShowEmptyDates(!showEmptyDates)} className="mr-1" />
+					<label className={classNames('inline-flex items-center')}>
+						<input type="checkbox" checked={showEmptyDates} onChange={() => setShowEmptyDates(!showEmptyDates)} className={classNames('mr-1')} />
 						<span className={`text-sm py-1 dark:text-gray-300`}>Show Empty Days</span>
 					</label>
 				</div>
 
 				{/* Tag Filters */}
 				<div>
-					<label className="block text-sm font-medium mb-2 dark:text-gray-300">Filter by Tags:</label>
-					<div className="flex flex-wrap gap-2">
+					<label className={classNames('block text-sm font-medium mb-2 dark:text-gray-300')}>Filter by Tags:</label>
+					<div className={classNames('flex flex-wrap gap-2')}>
 						{availableTags.map(tag => (
 							<button key={tag} onClick={() => cycleTagState(tag)} className={`px-3 py-1 rounded-full text-sm dark:text-gray-300 ${getTagStyle(tagStates[tag])}`}>
 								{tag}
@@ -214,50 +226,49 @@ const EventCalendar = () => {
 			</div>
 
 			{/* Event List */}
-			<div className="space-y-2">
+			<div className={classNames('space-y-1')}>
 				{filteredData.map(([date, events]) => (
-					<div key={date} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 dark:text-gray-200">
-						<h2 className="text-lg font-semibold border-b border-gray-200 dark:border-gray-700 dark:text-white">{date}</h2>
+					<div key={date} className={classNames(whiteBg, 'px-4 dark:text-gray-200')}>
+						<h2 className={classNames('text-lg font-semibold border-b border-gray-300 dark:border-gray-700 dark:text-white')}>{date}</h2>
 
 						{events.length === 0 ? (
-							<p className="text-gray-500 dark:text-gray-400 py-2 italic">No events</p>
+							<p className={classNames('text-gray-500 dark:text-gray-400 italic text-xs')}>No events</p>
 						) : (
-							<ul className="divide-y divide-gray-100 dark:divide-gray-700">
+							<ul className={classNames('divide-y divide-gray-300 dark:divide-gray-700')}>
 								{events.map((event, index) => (
-									<li key={index} className="py-0.5 flex flex-wrap items-center gap-2">
-										<span style={{ fontSize: `${getFontSize(event.priority)}px` }} className="font-medium flex-grow">
+									<li key={index} className={classNames('flex flex-wrap items-center gap-x-2', { 'py-0.5': event.priority <= 5 })}>
+										<span style={{ fontSize: `${getFontSize(event.priority)}px` }} className={classNames('font-medium flex-grow')}>
 											{event.name}
 										</span>
 
 										{(event.startTime || event.endTime) && (
 											<span
 												style={{ fontSize: `${getFontSize(event.priority, 14)}px` }}
-												className="text-gray-600 dark:text-gray-300 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded text-sm"
+												className={classNames('text-gray-600 dark:text-gray-300 bg-blue-50 dark:bg-blue-900/30 px-2 rounded')}
 											>
 												{formatTimeRange(event.startTime, event.endTime)}
 											</span>
 										)}
 
 										{event.location && (
-											<span
-												style={{ fontSize: `${getFontSize(event.priority, 14)}px` }}
-												className="text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-sm"
-											>
+											<span style={getStyle(event.priority, 14)} className={classNames('text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 rounded')}>
 												{event.location}
 											</span>
 										)}
 
-										<div className="flex flex-wrap gap-1">
-											{event.tags.map((tag, tagIndex) => (
-												<span
-													key={tagIndex}
-													style={{ fontSize: `${getFontSize(event.priority, 12)}px` }}
-													className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded-full text-xs"
-												>
-													{tag}
-												</span>
-											))}
-										</div>
+										{event.tags.length > 0 && (
+											<div className={classNames('flex flex-wrap gap-1')}>
+												{event.tags.map((tag, tagIndex) => (
+													<span
+														key={tagIndex}
+														style={getStyle(event.priority, 12)}
+														className={classNames('bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 rounded-full')}
+													>
+														{tag}
+													</span>
+												))}
+											</div>
+										)}
 									</li>
 								))}
 							</ul>
@@ -267,14 +278,16 @@ const EventCalendar = () => {
 			</div>
 
 			{/* Load More Button */}
-			<div className="flex justify-center w-full my-4">
+			<div className={classNames('flex justify-center w-full my-4')}>
 				{!isLoading ? (
 					<button
 						onClick={() => {
 							setLoading(true);
 							setFetchCount(fetchCount + 100);
 						}}
-						className="px-6 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-200"
+						className={classNames(
+							'px-6 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-200',
+						)}
 						disabled={isLoading}
 					>
 						More
