@@ -294,7 +294,9 @@ const EventCalendar = () => {
 						More
 					</button>
 				) : (
-					<LoadingIndicator />
+					<div className={classNames('px-6 py-2')}>
+						<LoadingIndicator />
+					</div>
 				)}
 			</div>
 		</div>
