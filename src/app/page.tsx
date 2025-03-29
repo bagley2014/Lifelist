@@ -11,6 +11,7 @@ import LoadingIndicator from './loadingIndicator';
 import NewButtonModal from './newButtonModal';
 import RangeSlider from 'react-range-slider-input';
 import classNames from 'classnames';
+import useLocalStorageState from 'use-local-storage-state';
 
 type DateEntry = [string, EventSummary[]];
 
@@ -26,9 +27,9 @@ const EventCalendar = () => {
 	const [isLoading, setLoading] = useState(true);
 	const [eventData, setEventData] = useState<DateEntry[]>([]);
 	const [filteredData, setFilteredData] = useState<DateEntry[]>([]);
-	const [showEmptyDates, setShowEmptyDates] = useState(false);
-	const [minPriority, setMinPriority] = useState(4);
-	const [maxPriority, setMaxPriority] = useState(10);
+	const [showEmptyDates, setShowEmptyDates] = useLocalStorageState('showEmptyDates', { defaultValue: false });
+	const [minPriority, setMinPriority] = useLocalStorageState('minPriority', { defaultValue: 4 });
+	const [maxPriority, setMaxPriority] = useLocalStorageState('maxPriority', { defaultValue: 10 });
 	const [availableTags, setAvailableTags] = useState<string[]>([]);
 	const [tagStates, setTagStates] = useState<{ [tag: string]: TagState }>({});
 
